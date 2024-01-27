@@ -8,6 +8,6 @@ import { ProcessingType } from "./processing-type.entity";
   imports: [TypeOrmModule.forFeature([ProcessingType])],
   controllers: [ProcessingTypeController],
   providers: [ProcessingTypeService],
-  exports: [TypeOrmModule.forFeature([ProcessingType]), ProcessingTypeService],
+  exports: [ProcessingTypeService],
 })
 export class ProcessingTypeModule {}

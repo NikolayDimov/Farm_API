@@ -2,12 +2,10 @@ import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
-  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
 } from "typeorm";
-import { Field } from "../field/field.entity";
 
 @Entity()
 export class Soil {
@@ -16,9 +14,6 @@ export class Soil {
 
   @Column({ unique: true, nullable: false })
   name: string;
-
-  @OneToMany(() => Field, (field) => field.soil)
-  fields: Field[];
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

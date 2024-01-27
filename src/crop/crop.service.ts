@@ -2,23 +2,35 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
-  ConflictException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { validate } from "class-validator";
 import { Crop } from "./crop.entity";
 import { CreateCropDto } from "./dtos/create-crop.dto";
 import { UpdateCropDto } from "./dtos/update-crop.dto";
-import { UserRole } from "../auth/dtos/role.enum";
 
 @Injectable()
 export class CropService {
   constructor(
+    @InjectEntityManager() private readonly entityManager: EntityManager,
     @InjectRepository(Crop) private cropRepository: Repository<Crop>,
   ) {}
 
-  async createCrop(createCropDto: CreateCropDto): Promise<Crop> {
+  async findAll() {
+    const crops = await this.cropRepository.find({});
+    if (!crops) {
+      throw new NotFoundException(`No crops found`);
+    }
+    return crops;
+  }
+
+  async findOneById(id: string): Promise<Crop> {
+    const existingCropId = await this.cropRepository.findOneBy({ id });
+    return existingCropId;
+  }
+
+  async create(createCropDto: CreateCropDto): Promise<Crop> {
     const errors = await validate(createCropDto);
     if (errors.length > 0) {
       throw new BadRequestException(errors);
@@ -26,144 +38,92 @@ export class CropService {
 
     const { name } = createCropDto;
 
-    // Attempt to find the crop by name (including soft-deleted ones)
     const existingCrop = await this.cropRepository.findOne({
-      withDeleted: true,
       where: { name },
     });
 
-    if (existingCrop) {
-      // If the crop exists and is soft-deleted, restore it
-      if (existingCrop.deleted) {
-        existingCrop.deleted = null;
-        return await this.cropRepository.save(existingCrop);
-      } else {
-        // If the crop is not soft-deleted, throw a conflict exception
-        throw new ConflictException(`Crop ${name} already exists`);
-      }
+    if (createCropDto.name === existingCrop.name) {
+      throw new BadRequestException(`Crop already exists!`);
     }
 
     const newCrop = this.cropRepository.create({ name });
-    return await this.cropRepository.save(newCrop);
+    const newCreatedCrop = await this.cropRepository.save(newCrop);
+    return newCreatedCrop;
   }
 
-  async findAll(): Promise<Crop[]> {
-    const crop = await this.cropRepository
-      .createQueryBuilder("crop")
-      .andWhere("crop.deleted IS NULL")
-      .getMany();
-
-    if (!crop.length) {
-      throw new NotFoundException("No crop found");
-    }
-
-    return crop;
-  }
-
-  async findByName(name: string): Promise<Crop | undefined> {
-    return this.cropRepository
-      .createQueryBuilder("crop")
-      .where("crop.name = :name", { name })
-      .getOne();
-  }
-
-  async findOne(id: string): Promise<Crop> {
-    const existingCropId = await this.cropRepository.findOneBy({ id });
-    if (!existingCropId) {
+  async update(id: string, updateCropDto: UpdateCropDto): Promise<Crop> {
+    const existingCrop = await this.cropRepository.findOneBy({ id });
+    if (!existingCrop) {
       throw new NotFoundException(`Crop with ID ${id} not found`);
     }
-    return existingCropId;
-  }
-
-  async findById(id: string): Promise<Crop> {
-    const crop = await this.cropRepository
-      .createQueryBuilder("crop")
-      .andWhere("crop.id = :id", { id })
-      .andWhere("crop.deleted IS NULL")
-      .getOne();
-
-    if (!crop) {
-      throw new NotFoundException(`Crop with ID ${id} not found`);
-    }
-
-    return crop;
-  }
-
-  async updateCrop(id: string, updateCropDto: UpdateCropDto): Promise<Crop> {
-    const crop = await this.cropRepository.findOneBy({ id });
 
     if (updateCropDto.name) {
-      crop.name = updateCropDto.name;
+      await this.cropRepository.update(id, { name: updateCropDto.name });
     }
 
-    return await this.cropRepository.save(crop);
+    const updatedCrop = await this.cropRepository.findOneBy({ id });
+    if (!updatedCrop) {
+      throw new NotFoundException(`Updated crop with ID ${id} not found`);
+    }
+
+    return updatedCrop;
   }
 
-  async deleteCropById(
+  async softDelete(
     id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    const existingCrop = await this.cropRepository.findOne({
-      where: { id },
-      relations: ["growingCropPeriods"],
-    });
+    const existingCrop = await this.cropRepository.findOneBy({ id });
 
     if (!existingCrop) {
       throw new NotFoundException(`Crop with id ${id} not found`);
     }
 
-    if (
-      existingCrop.growingCropPeriods &&
-      existingCrop.growingCropPeriods.length > 0
-    ) {
-      throw new BadRequestException(
-        `This crop ${existingCrop.name} has associated growingCropPeriods. Cannot be soft deleted.`,
-      );
-    }
+    // const isCropAssociatedWithGrowingCropPeriods =
+    //   await this.growingCropPeriodService.isCropAssociatedWithGrowingCropPeriods(
+    //     id,
+    //   );
 
-    // Soft delete using the softDelete method
+    // if (isCropAssociatedWithGrowingCropPeriods) {
+    //   throw new BadRequestException(
+    //     `This crop with ID ${id} has associated GrowingCropPeriods. Cannot update the crop.`,
+    //   );
+    // }
+
     await this.cropRepository.softDelete({ id });
 
     return {
       id,
       name: existingCrop.name,
-      message: `Successfully soft-deleted Farm with id ${id} and name ${existingCrop.name}`,
+      message: `${id}`,
     };
   }
 
-  async permanentlyDeleteCropByIdForOwner(
+  async permanentDelete(
     id: string,
-    userRole: UserRole,
   ): Promise<{ id: string; name: string; message: string }> {
-    const existingCrop = await this.cropRepository.findOne({
-      where: { id },
-      relations: ["growingCropPeriods"],
-    });
+    const existingCrop = await this.cropRepository.findOneBy({ id });
 
     if (!existingCrop) {
       throw new NotFoundException(`Crop with id ${id} not found`);
     }
 
-    if (
-      existingCrop.growingCropPeriods &&
-      existingCrop.growingCropPeriods.length > 0
-    ) {
-      throw new BadRequestException(
-        `This crop ${existingCrop.name} has associated growingCropPeriods. Cannot be soft deleted.`,
-      );
-    }
+    // const isCropAssociatedWithGrowingCropPeriods =
+    //   await this.growingCropPeriodService.isCropAssociatedWithGrowingCropPeriods(
+    //     id,
+    //   );
 
-    // Check if the user has the necessary role (OWNER) to perform the permanent delete
-    if (userRole !== UserRole.OWNER) {
-      throw new NotFoundException("User does not have the required role");
-    }
+    // if (isCropAssociatedWithGrowingCropPeriods) {
+    //   throw new BadRequestException(
+    //     `This crop with ID ${id} has associated GrowingCropPeriods. Cannot update the crop.`,
+    //   );
+    // }
 
-    // Perform the permanent delete
     await this.cropRepository.remove(existingCrop);
 
     return {
       id,
       name: existingCrop.name,
-      message: `Successfully permanently deleted Crop with id ${id} and name ${existingCrop.name}`,
+      message: `${id}`,
     };
   }
 }

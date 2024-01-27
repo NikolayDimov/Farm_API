@@ -23,7 +23,7 @@ export class FarmController {
 
   @Get()
   async getAllFarms() {
-    const transformedFarms = await this.farmService.findAllFarms();
+    const transformedFarms = await this.farmService.findAll();
     return { data: transformedFarms };
   }
 
@@ -37,7 +37,7 @@ export class FarmController {
   @Post()
   async createFarm(@Body() createFarmDto: CreateFarmDto) {
     //console.log("Received request payload:", createFarmDto);
-    const createdFarm = await this.farmService.createFarm(createFarmDto);
+    const createdFarm = await this.farmService.create(createFarmDto);
     return { data: createdFarm };
   }
 
@@ -47,7 +47,7 @@ export class FarmController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateFarmDto: UpdateFarmDto,
   ) {
-    const updatedFarm = await this.farmService.updateFarm(id, updateFarmDto);
+    const updatedFarm = await this.farmService.update(id, updateFarmDto);
     return { data: updatedFarm };
   }
 
@@ -56,7 +56,7 @@ export class FarmController {
   async deleteFarm(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.farmService.deleteFarm(id);
+    return this.farmService.softDetele(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -64,6 +64,6 @@ export class FarmController {
   async permanentlyDeletefarmByIdForOwner(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.farmService.permanentlyDeletefarmByIdForOwner(id);
+    return this.farmService.permanentDelete(id);
   }
 }

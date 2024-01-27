@@ -26,9 +26,7 @@ export class GrowingCropPeriodController {
     @Body(ValidationPipe)
     createGrowingCropPeriodDto: CreateGrowingCropPeriodDto,
   ): Promise<GrowingCropPeriod> {
-    return this.growingCropPeriodService.createGrowingCropPeriod(
-      createGrowingCropPeriodDto,
-    );
+    return this.growingCropPeriodService.create(createGrowingCropPeriodDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -36,7 +34,7 @@ export class GrowingCropPeriodController {
   async deleteFieldById(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; message: string }> {
-    return this.growingCropPeriodService.deleteGrowingCropPeriodById(id);
+    return this.growingCropPeriodService.softDelete(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -44,8 +42,6 @@ export class GrowingCropPeriodController {
   async permanentlyDeleteGrowingCropPeriodForOwner(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; message: string }> {
-    return this.growingCropPeriodService.permanentlyDeleteGrowingCropPeriodForOwner(
-      id,
-    );
+    return this.growingCropPeriodService.permanentDelete(id);
   }
 }

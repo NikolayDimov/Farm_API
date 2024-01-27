@@ -26,24 +26,23 @@ export class ProcessingController {
 
   @Get()
   async getAllFields() {
-    const transformedProcessing =
-      await this.processingService.findAllProcessings();
+    const transformedProcessing = await this.processingService.findAll();
     return { data: transformedProcessing };
   }
 
   @Get(":id")
   async getProcessingById(@Param("id", ParseUUIDPipe) id: string) {
-    const transformedField = await this.processingService.findById(id);
+    const transformedField = await this.processingService.findOneById(id);
     return { data: transformedField };
   }
 
-  @Roles(UserRole.OWNER, UserRole.OPERATOR)
-  @Post()
-  async createProcessing(@Body() createProcessingDto: CreateProcessingDto) {
-    const createdProcessing =
-      await this.processingService.createProcessing(createProcessingDto);
-    return { data: createdProcessing };
-  }
+  // @Roles(UserRole.OWNER, UserRole.OPERATOR)
+  // @Post()
+  // async createProcessing(@Body() createProcessingDto: CreateProcessingDto) {
+  //   const createdProcessing =
+  //     await this.processingService.create(createProcessingDto);
+  //   return { data: createdProcessing };
+  // }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Patch(":id")
@@ -51,7 +50,7 @@ export class ProcessingController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateProcessingDto: UpdateProcessingDto,
   ) {
-    const updatedProcessing = await this.processingService.updateProcessing(
+    const updatedProcessing = await this.processingService.update(
       id,
       updateProcessingDto,
     );
@@ -63,12 +62,9 @@ export class ProcessingController {
   async deleteFieldById(@Param("id", ParseUUIDPipe) id: string): Promise<{
     id: string;
     date: Date;
-    growingCropPeriod: GrowingCropPeriod[];
-    processingType: ProcessingType[];
-    machine: Machine[];
     message: string;
   }> {
-    return this.processingService.deleteProcessingById(id);
+    return this.processingService.softDelete(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -78,11 +74,8 @@ export class ProcessingController {
   ): Promise<{
     id: string;
     date: Date;
-    growingCropPeriod: GrowingCropPeriod[];
-    processingType: ProcessingType[];
-    machine: Machine[];
     message: string;
   }> {
-    return this.processingService.permanentlyDeleteProcessingForOwner(id);
+    return this.processingService.permanentDelete(id);
   }
 }

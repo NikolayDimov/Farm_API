@@ -24,20 +24,20 @@ export class FieldController {
 
   @Get()
   async getAllFields() {
-    const transformedFields = await this.fieldService.findAllFields();
+    const transformedFields = await this.fieldService.findAll();
     return { data: transformedFields };
   }
 
   @Get(":id")
   async getFieldById(@Param("id", ParseUUIDPipe) id: string) {
-    const transformedField = await this.fieldService.findById(id);
+    const transformedField = await this.fieldService.findOneById(id);
     return { data: transformedField };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Post()
   async createFieldWithSoilId(@Body() createFieldDto: CreateFieldDto) {
-    const createdField = await this.fieldService.createField(createFieldDto);
+    const createdField = await this.fieldService.create(createFieldDto);
     return { data: createdField };
   }
 
@@ -47,10 +47,7 @@ export class FieldController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateFieldDto: UpdateFieldDto,
   ) {
-    const updatedField = await this.fieldService.updateField(
-      id,
-      updateFieldDto,
-    );
+    const updatedField = await this.fieldService.update(id, updateFieldDto);
     return { data: updatedField };
   }
 
@@ -59,7 +56,7 @@ export class FieldController {
   async deleteFieldById(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.fieldService.deleteFieldById(id);
+    return this.fieldService.softDelete(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -67,6 +64,6 @@ export class FieldController {
   async permanentlyDeleteFieldByIdForOwner(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.fieldService.permanentlyDeleteFieldByIdForOwner(id);
+    return this.fieldService.permanentDelete(id);
   }
 }

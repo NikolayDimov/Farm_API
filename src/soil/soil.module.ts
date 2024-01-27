@@ -8,6 +8,6 @@ import { Soil } from "./soil.entity";
   imports: [TypeOrmModule.forFeature([Soil])],
   controllers: [SoilController],
   providers: [SoilService],
-  exports: [TypeOrmModule.forFeature([Soil]), SoilService],
+  exports: [SoilService],
 })
 export class SoilModule {}

@@ -5,23 +5,21 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  OneToMany,
 } from "typeorm";
-import { GrowingCropPeriod } from "../growing-crop-period/growing-crop-period.entity";
 
 @Entity()
 export class Crop {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @Column({ unique: true, nullable: false })
+  @Column({ nullable: false })
   name: string;
 
-  @OneToMany(
-    () => GrowingCropPeriod,
-    (growingCropPeriod) => growingCropPeriod.crop,
-  )
-  growingCropPeriods: GrowingCropPeriod[];
+  // @OneToMany(
+  //   () => GrowingCropPeriod,
+  //   (growingCropPeriod) => growingCropPeriod.crop,
+  // )
+  // growingCropPeriods: GrowingCropPeriod[];
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

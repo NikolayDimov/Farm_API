@@ -11,7 +11,10 @@ import { FieldModule } from "./field/field.module";
 import { SoilModule } from "./soil/soil.module";
 import { MachineModule } from "./machine/machine.module";
 import { CropModule } from "./crop/crop.module";
-import { HttpExceptionFilter } from "./filters/HttpExceptionFilter";
+import {
+  GlobalExceptionFilter,
+  //HttpExceptionFilter,
+} from "./filters/HttpExceptionFilter";
 import { ReportModule } from "./report/report.module";
 //import { dataSourceOptions } from "db/data-source";
 import { Farm } from "./farm/farm.entity";
@@ -21,9 +24,12 @@ import { Soil } from "./soil/soil.entity";
 import { Machine } from "./machine/machine.entity";
 import { Crop } from "./crop/crop.entity";
 import { GrowingCropPeriod } from "./growing-crop-period/growing-crop-period.entity";
+import { GrowingCropPeriodModule } from "./growing-crop-period/growing-crop-period.module";
 import { Processing } from "./processing/processing.entity";
 import { ProcessingType } from "./processing-type/processing-type.entity";
 import * as dotenv from "dotenv";
+import { ProcessingTypeModule } from "./processing-type/processing-type.module";
+import { ProcessingModule } from "./processing/processing.module";
 dotenv.config();
 
 @Module({
@@ -50,15 +56,15 @@ dotenv.config();
           entities: [
             User,
             Farm,
-            Field,
             Soil,
+            Field,
             Machine,
             Crop,
             GrowingCropPeriod,
             Processing,
             ProcessingType,
           ],
-          synchronize: true,
+          synchronize: false,
         };
       },
     }),
@@ -66,10 +72,13 @@ dotenv.config();
     AuthModule,
     UserModule,
     FarmModule,
-    FieldModule,
     SoilModule,
+    FieldModule,
     MachineModule,
     CropModule,
+    GrowingCropPeriodModule,
+    ProcessingTypeModule,
+    ProcessingModule,
     ReportModule,
   ],
   controllers: [],
@@ -84,7 +93,7 @@ dotenv.config();
     },
     {
       provide: APP_FILTER,
-      useClass: HttpExceptionFilter,
+      useClass: GlobalExceptionFilter,
     },
   ],
 })

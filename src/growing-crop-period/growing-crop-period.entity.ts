@@ -4,31 +4,19 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
+  Column,
 } from "typeorm";
-import { Crop } from "../crop/crop.entity";
-import { Field } from "../field/field.entity";
-import { Processing } from "../processing/processing.entity";
 
 @Entity()
 export class GrowingCropPeriod {
   @PrimaryGeneratedColumn("uuid")
   id: string;
 
-  @ManyToOne(() => Field, (field) => field.growingCropPeriods, {
-    nullable: false,
-  })
-  @JoinColumn({ name: "field_id" })
-  field: Field;
+  @Column({ type: "uuid", nullable: false })
+  field_id: string;
 
-  @ManyToOne(() => Crop, (crop) => crop.growingCropPeriods, { nullable: false })
-  @JoinColumn({ name: "crop_id" })
-  crop: Crop;
-
-  @OneToMany(() => Processing, (processing) => processing.growingCropPeriod)
-  processings: Processing[];
+  @Column({ type: "uuid", nullable: false })
+  crop_id: string;
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

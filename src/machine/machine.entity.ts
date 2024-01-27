@@ -26,12 +26,8 @@ export class Machine {
   @Column({ name: "register_number", unique: true, nullable: false })
   registerNumber: string;
 
-  @ManyToOne(() => Farm, (farm) => farm.machines, { nullable: false })
-  @JoinColumn({ name: "farm_id" })
-  farm: Farm;
-
-  @OneToMany(() => Processing, (processing) => processing.machine)
-  processings: Processing[];
+  @Column({ type: "uuid", nullable: false })
+  farm_id: string;
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

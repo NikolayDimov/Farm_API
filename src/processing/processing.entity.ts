@@ -4,13 +4,9 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  ManyToOne,
-  JoinColumn,
   Column,
 } from "typeorm";
-import { Machine } from "../machine/machine.entity";
-import { GrowingCropPeriod } from "../growing-crop-period/growing-crop-period.entity";
-import { ProcessingType } from "../processing-type/processing-type.entity";
+
 import { IsDateString } from "class-validator";
 
 @Entity()
@@ -22,27 +18,14 @@ export class Processing {
   @IsDateString()
   date: Date;
 
-  @ManyToOne(
-    () => GrowingCropPeriod,
-    (growingCropPeriod) => growingCropPeriod.processings,
-    { nullable: false },
-  )
-  @JoinColumn({ name: "growing_crop_period_id" })
-  growingCropPeriod: GrowingCropPeriod;
+  @Column({ type: "uuid", nullable: false })
+  growing_crop_period_id: string;
 
-  @ManyToOne(
-    () => ProcessingType,
-    (processingType) => processingType.processings,
-    { nullable: false },
-  )
-  @JoinColumn({ name: "processing_type_id" })
-  processingType: ProcessingType;
+  @Column({ type: "uuid", nullable: false })
+  processing_type_id: string;
 
-  @ManyToOne(() => Machine, (machine) => machine.processings, {
-    nullable: false,
-  })
-  @JoinColumn({ name: "machine_id" })
-  machine: Machine;
+  @Column({ type: "uuid", nullable: false })
+  machine_id: string;
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

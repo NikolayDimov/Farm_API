@@ -21,12 +21,6 @@ import { UserRole } from "../auth/dtos/role.enum";
 export class CropController {
   constructor(private readonly cropService: CropService) {}
 
-  @Roles(UserRole.OWNER, UserRole.OPERATOR)
-  @Post()
-  async createCrop(@Body() createCropDto: CreateCropDto) {
-    return this.cropService.createCrop(createCropDto);
-  }
-
   @Get()
   async getAllCrops() {
     return this.cropService.findAll();
@@ -34,7 +28,13 @@ export class CropController {
 
   @Get(":id")
   async getCropById(@Param("id", ParseUUIDPipe) id: string) {
-    return this.cropService.findById(id);
+    return this.cropService.findOneById(id);
+  }
+
+  @Roles(UserRole.OWNER, UserRole.OPERATOR)
+  @Post()
+  async createCrop(@Body() createCropDto: CreateCropDto) {
+    return this.cropService.create(createCropDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -43,7 +43,7 @@ export class CropController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateCropDto: UpdateCropDto,
   ) {
-    return this.cropService.updateCrop(id, updateCropDto);
+    return this.cropService.update(id, updateCropDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -51,7 +51,7 @@ export class CropController {
   async deleteCropById(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.cropService.deleteCropById(id);
+    return this.cropService.softDelete(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -59,8 +59,6 @@ export class CropController {
   async permanentlyDeleteCropByIdForOwner(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    const userRole = UserRole.OWNER;
-
-    return this.cropService.permanentlyDeleteCropByIdForOwner(id, userRole);
+    return this.cropService.permanentDelete(id);
   }
 }

@@ -17,9 +17,6 @@ export class ProcessingType {
   @Column({ unique: true, nullable: false })
   name: string;
 
-  @OneToMany(() => Processing, (processing) => processing.processingType)
-  processings: Processing[];
-
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;
 

@@ -3,155 +3,118 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
+import { Repository, EntityManager } from "typeorm";
 import { Processing } from "./processing.entity";
 import { CreateProcessingDto } from "./dtos/create-processing.dto";
 import { UpdateProcessingDto } from "./dtos/update-processing.dto";
-import { GrowingCropPeriodService } from "../growing-crop-period/growing-crop-period.service";
-import { ProcessingTypeService } from "../processing-type/processing-type.service";
-import { MachineService } from "../machine/machine.service";
-import { ProcessingType } from "../processing-type/processing-type.entity";
 import { GrowingCropPeriod } from "../growing-crop-period/growing-crop-period.entity";
 import { Machine } from "../machine/machine.entity";
-import { UserRole } from "../auth/dtos/role.enum";
 
 @Injectable()
 export class ProcessingService {
   constructor(
+    @InjectEntityManager() private readonly entityManager: EntityManager,
     @InjectRepository(Processing)
     private processingRepository: Repository<Processing>,
-    private growingCropPeriodService: GrowingCropPeriodService,
-    private processingTypeService: ProcessingTypeService,
-    private machineService: MachineService,
   ) {}
 
-  async findOne(
-    id: string,
-    options?: { relations?: string[] },
-  ): Promise<Processing> {
-    if (!id) {
-      return null;
-    }
-
-    return await this.processingRepository.findOne({
-      where: { id },
-      relations: options?.relations,
-    });
-  }
-
-  // transformField and transformSoil -- use for findAllWithSoil and findById
-  private transformProcessing(processingObj: Processing) {
-    return {
-      id: processingObj.id,
-      date: processingObj.date,
-      growingCropPeriod: processingObj.growingCropPeriod,
-      machine: processingObj.machine,
-      processingType: processingObj.processingType,
-      created: processingObj.created,
-      updated: processingObj.updated,
-      deleted: processingObj.deleted,
-    };
-  }
-
-  async findAllProcessings() {
-    const processings = await this.processingRepository
-      .createQueryBuilder("processing")
-      .leftJoinAndSelect("processing.growingCropPeriod", "growingCropPeriod")
-      .leftJoinAndSelect("processing.machine", "machine")
-      .leftJoinAndSelect("processing.processingType", "processingType")
-      .where("processing.deleted IS NULL")
-      .getMany();
-
-    if (!processings.length) {
-      throw new NotFoundException("No processings found");
-    }
-
-    return processings.map((processing) =>
-      this.transformProcessing(processing),
-    );
-  }
-
-  async findById(id: string): Promise<Processing> {
-    const processing = await this.processingRepository
-      .createQueryBuilder("processing")
-      .leftJoinAndSelect("processing.growingCropPeriod", "growingCropPeriod")
-      .leftJoinAndSelect("processing.machine", "machine")
-      .leftJoinAndSelect("processing.processingType", "processingType")
-      .andWhere("processing.id = :id", { id })
-      .andWhere("processing.deleted IS NULL")
-      .getOne();
-
+  async findAll() {
+    const processing = await this.processingRepository.find({});
     if (!processing) {
-      throw new NotFoundException(`Processing with ID ${id} not found`);
+      throw new NotFoundException(`No processingType found`);
     }
-    return this.transformProcessing(processing);
+    return processing;
   }
 
-  async createProcessing(
-    createProcessingDto: CreateProcessingDto,
-  ): Promise<Processing> {
+  async findOneById(id: string): Promise<Processing> {
+    const existingProcessing = await this.processingRepository.findOneBy({
+      id,
+    });
+    return existingProcessing;
+  }
+
+  async create(createProcessingDto: CreateProcessingDto): Promise<Processing> {
     const { date, processingTypeId, machineId, growingCropPeriodId } =
       createProcessingDto;
 
-    const growingCropPeriod = await this.growingCropPeriodService.findOne(
-      growingCropPeriodId,
-      { relations: ["field", "field.farm"] },
-    );
-    if (!growingCropPeriod) {
-      throw new BadRequestException(`There is no growingCropPeriod`);
-    }
+    const growingPeriodFarmId = await this.entityManager
+      .getRepository(GrowingCropPeriod)
+      .createQueryBuilder("gp")
+      .innerJoin("field", "f", "f.id = gp.fieldId")
+      .where("gp.id = :growingPeriodId", { growingCropPeriodId })
+      .select("f.farmId", "farmId")
+      .getRawOne();
 
-    const processingType =
-      await this.processingTypeService.findOne(processingTypeId);
-    if (!processingTypeId) {
-      throw new BadRequestException(`There is no processingType`);
-    }
+    const machineFarmId = await this.entityManager
+      .getRepository(Machine)
+      .createQueryBuilder("machine")
+      .where("machine.id = :machineId", { machineId })
+      .select("machine.farmId", "farmId")
+      .getRawOne();
 
-    const machine = await this.machineService.findOne(machineId, {
-      relations: ["farm"],
-    });
-    if (!machine) {
-      throw new BadRequestException(`There is no machine type`);
-    }
-    console.log("machine:", machine);
-    console.log("growingPeriod:", growingCropPeriod);
-    // console.log(cultivationType);
-
-    if (machine.farm.id !== growingCropPeriod.field.farm.id) {
+    if (machineFarmId.farmId !== growingPeriodFarmId.farmId) {
       throw new BadRequestException(
-        `The machine ${machine.brand} ${machine.model} ${machine.registerNumber} not belong to farm ${growingCropPeriod.field.farm.name}`,
+        `Machine with id ${machineId} is not in this farm. Please select another machine`,
       );
     }
 
-    const processing = this.processingRepository.create({
+    // const growingCropPeriod =
+    //   await this.growingCropPeriodService.findOneById(growingCropPeriodId);
+    // if (!growingCropPeriod) {
+    //   throw new BadRequestException(`There is no growingCropPeriod`);
+    // }
+
+    // const processingType =
+    //   await this.processingTypeService.findOneById(processingTypeId);
+    // if (!processingType) {
+    //   throw new BadRequestException(`There is no processingType`);
+    // }
+
+    // const machine = await this.machineService.findOneById(machineId);
+    // if (!machine) {
+    //   throw new BadRequestException(`There is no machine type`);
+    // }
+
+    // const fieldObj = await this.fieldService.findOneById(
+    //   growingCropPeriod.field_id,
+    // );
+    // if (!fieldObj) {
+    //   throw new BadRequestException(`There is no fieldFarm!`);
+    // }
+    // const fieldFarmId = fieldObj.farm_id;
+
+    // const machineObj = await this.machineService.findOneById(machine.farm_id);
+    // if (!machineObj) {
+    //   throw new BadRequestException(`There is no machineFarm!`);
+    // }
+    // const machineFarmId = machineObj.farm_id;
+
+    // if (fieldFarmId !== machineFarmId) {
+    //   throw new BadRequestException(
+    //     `The machine ${machineObj.brand} ${machineObj.model} ${machineObj.registerNumber} not belong to farm ${fieldObj.farm_id}`,
+    //   );
+    // }
+
+    const newProcessing = this.processingRepository.create({
       date,
-      growingCropPeriod,
-      processingType,
-      machine,
+      growing_crop_period_id: growingCropPeriodId,
+      processing_type_id: processingTypeId,
+      machine_id: machineId,
     });
 
-    const createdProcessing = await this.processingRepository.save(processing);
+    const createdProcessing =
+      await this.processingRepository.save(newProcessing);
     return createdProcessing;
   }
 
-  async updateProcessing(
+  async update(
     id: string,
     updateProcessingDto: UpdateProcessingDto,
   ): Promise<Processing> {
-    const existingProcessing = await this.processingRepository.findOne({
-      where: { id },
-      relations: [
-        "growingCropPeriod",
-        "growingCropPeriod.field",
-        "growingCropPeriod.field.farm",
-        "growingCropPeriod.crop",
-        "processingType",
-        "machine",
-        "machine.farm",
-      ],
+    const existingProcessing = await this.processingRepository.findOneBy({
+      id,
     });
-
     if (!existingProcessing) {
       throw new NotFoundException(`Processing with ID ${id} not found`);
     }
@@ -160,152 +123,91 @@ export class ProcessingService {
       existingProcessing.date = updateProcessingDto.date;
     }
 
-    if (updateProcessingDto.growingCropPeriodId) {
-      const growingCropPeriodId = await this.growingCropPeriodService.findOne(
-        updateProcessingDto.growingCropPeriodId,
-        { relations: ["field", "field.farm"] },
-      );
-      if (!growingCropPeriodId) {
-        throw new BadRequestException("No growingCropPeriodId found");
-      }
-      existingProcessing.growingCropPeriod = growingCropPeriodId;
+    // const fieldFarm = await this.fieldService.findOneById(
+    //   updateProcessingDto.growingCropPeriodId,
+    // );
+    // if (!fieldFarm) {
+    //   throw new BadRequestException(`There is no fieldFarm!`);
+    // }
+    // const fieldFarmId = fieldFarm.farm_id;
+
+    // const machineFarm = await this.machineService.findOneById(
+    //   updateProcessingDto.machineId,
+    // );
+    // if (!machineFarm) {
+    //   throw new BadRequestException(`There is no machineFarm!`);
+    // }
+    // const machineFarmId = machineFarm.farm_id;
+
+    // if (fieldFarmId !== machineFarmId) {
+    //   throw new BadRequestException(
+    //     `The machine ${machineFarm.brand} ${machineFarm.model} ${machineFarm.registerNumber} not belong to farm ${fieldFarm.farm_id}`,
+    //   );
+    // }
+
+    const updateResult = await this.processingRepository.update(
+      id,
+      updateProcessingDto,
+    );
+
+    // Check if the update was successful
+    if (updateResult.affected === 0) {
+      throw new NotFoundException(`Field with ID ${id} not found`);
     }
 
-    if (updateProcessingDto.processingTypeId) {
-      const processingTypeId = await this.processingTypeService.findOne(
-        updateProcessingDto.processingTypeId,
-      );
-      if (!processingTypeId) {
-        throw new BadRequestException("No processingTypeId found");
-      }
-      existingProcessing.processingType = processingTypeId;
+    // Fetch and return the updated field
+    const updatedField = await this.processingRepository.findOneBy({ id });
+
+    if (!updatedField) {
+      throw new NotFoundException(`Updated field with ID ${id} not found`);
     }
 
-    if (updateProcessingDto.machineId) {
-      const machineId = await this.machineService.findOne(
-        updateProcessingDto.machineId,
-        { relations: ["farm"] },
-      );
-
-      if (!machineId) {
-        throw new BadRequestException("No machineId found");
-      }
-
-      const machinefarm = machineId.farm.id;
-      const gpFieldfarm = existingProcessing.growingCropPeriod.field.farm.id;
-
-      if (machinefarm !== gpFieldfarm) {
-        throw new BadRequestException(
-          `Machine ${machineId.brand} ${machineId.model} ${machineId.registerNumber} is not in the same farm as field ${existingProcessing.growingCropPeriod.field.name} is.`,
-        );
-      }
-
-      existingProcessing.machine = machineId;
-    }
-
-    const updatedProcessing =
-      await this.processingRepository.save(existingProcessing);
-    return updatedProcessing;
+    return updatedField;
   }
 
-  async deleteProcessingById(id: string): Promise<{
+  async softDelete(id: string): Promise<{
     id: string;
     date: Date;
-    growingCropPeriod: GrowingCropPeriod[];
-    processingType: ProcessingType[];
-    machine: Machine[];
     message: string;
   }> {
-    const existingProcessing = await this.processingRepository.findOne({
-      where: { id },
-      relations: ["growingCropPeriod", "processingType", "machine"],
+    const existingProcessing = await this.processingRepository.findOneBy({
+      id,
     });
 
     if (!existingProcessing) {
       throw new NotFoundException(`Processing with id ${id} not found`);
     }
 
-    const growingCropPeriod: GrowingCropPeriod[] =
-      (existingProcessing.growingCropPeriod ?? []) as GrowingCropPeriod[];
-    const processingType: ProcessingType[] =
-      (existingProcessing.processingType ?? []) as ProcessingType[];
-    const machine: Machine[] = (existingProcessing.machine ?? []) as Machine[];
-
-    // Soft delete using the softDelete method
     await this.processingRepository.softDelete({ id });
 
     return {
       id,
-      date: existingProcessing.deleted || new Date(), // Use deleted instead of date
-      growingCropPeriod,
-      processingType,
-      machine,
+      date: existingProcessing.deleted || new Date(),
       message: `Successfully soft deleted Processing with id ${id}`,
     };
   }
 
-  async permanentlyDeleteProcessingForOwner(id: string): Promise<{
+  async permanentDelete(id: string): Promise<{
     id: string;
     date: Date;
-    growingCropPeriod: GrowingCropPeriod[];
-    processingType: ProcessingType[];
-    machine: Machine[];
     message: string;
   }> {
-    const existingProcessing = await this.processingRepository.findOne({
-      where: { id },
-      relations: ["growingCropPeriod", "processingType", "machine"],
+    const existingProcessing = await this.processingRepository.findOneBy({
+      id,
     });
-    // console.log("Found machine:", existingMachine);
 
     if (!existingProcessing) {
       throw new NotFoundException(`Processing with id ${id} not found`);
     }
 
-    const growingCropPeriod: GrowingCropPeriod[] =
-      (existingProcessing.growingCropPeriod ?? []) as GrowingCropPeriod[];
-    const processingType: ProcessingType[] =
-      (existingProcessing.processingType ?? []) as ProcessingType[];
-    const machine: Machine[] = (existingProcessing.machine ?? []) as Machine[];
-
-    // Perform the permanent delete
     await this.processingRepository.remove(existingProcessing);
 
     return {
       id,
       date: existingProcessing.deleted || new Date(), // Use deleted instead of date
-      growingCropPeriod,
-      processingType,
-      machine,
       message: `Successfully permanently deleted Processing with id ${id}`,
     };
   }
-
-  // Most common field soil type (texture) per farm
-  // async getMostCommonFieldSoilTypePerFarm(): Promise<
-  //   {
-  //     farmName: string;
-  //     mostCommonSoilType: string;
-  //     soilName: string;
-  //     occurrences: number;
-  //   }[]
-  // > {
-  //   const result = await this.processingRepository
-  //     .createQueryBuilder("processing")
-  //     .select("farm.name", "farmName")
-  //     .addSelect("field.soil", "mostCommonSoilType")
-  //     .addSelect("soil.name", "soilName")
-  //     .addSelect("CAST(COUNT(soil.id)AS INTEGER)", "occurrences")
-  //     .leftJoin("processing.growingCropPeriod", "growingCropPeriod")
-  //     .leftJoin("growingCropPeriod.field", "field")
-  //     .leftJoin("field.farm", "farm")
-  //     .leftJoin("field.soil", "soil")
-  //     .groupBy("farm.name, field.soil, soil.name")
-  //     .orderBy("occurrences", "DESC")
-  //     .getRawMany();
-
-  //   return result;
-  // }
 
   async generateProcessingReport(): Promise<ProcessingReportDTO[]> {
     const result: ProcessingReportDTO[] = await this.processingRepository
@@ -332,5 +234,35 @@ export class ProcessingService {
       .getRawMany();
 
     return result;
+  }
+
+  async isGrowingCropperiodAssociatedWithProcessings(
+    growingCropPeriodId: string,
+  ): Promise<boolean> {
+    const count = await this.processingRepository.count({
+      where: { growing_crop_period_id: growingCropPeriodId },
+    });
+
+    return count > 0;
+  }
+
+  async isProcessingTypeAssociatedWithProcessings(
+    processingTypeId: string,
+  ): Promise<boolean> {
+    const count = await this.processingRepository.count({
+      where: { processing_type_id: processingTypeId },
+    });
+
+    return count > 0;
+  }
+
+  async isMachineAssociatedWithProcessings(
+    machineId: string,
+  ): Promise<boolean> {
+    const count = await this.processingRepository.count({
+      where: { machine_id: machineId },
+    });
+
+    return count > 0;
   }
 }

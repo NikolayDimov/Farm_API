@@ -1,19 +1,4 @@
-import { IsNotEmpty, IsDateString, IsUUID } from "class-validator";
+import { PartialType } from "@nestjs/swagger";
+import { CreateProcessingDto } from "./create-processing.dto";
 
-export class UpdateProcessingDto {
-  @IsNotEmpty({ message: "Date cannot be empty" })
-  @IsDateString()
-  date: Date;
-
-  @IsNotEmpty()
-  @IsUUID()
-  growingCropPeriodId: string;
-
-  @IsNotEmpty()
-  @IsUUID()
-  processingTypeId: string;
-
-  @IsNotEmpty()
-  @IsUUID()
-  machineId: string;
-}
+export class UpdateProcessingDto extends PartialType(CreateProcessingDto) {}

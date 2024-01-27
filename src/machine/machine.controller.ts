@@ -42,7 +42,7 @@ export class MachineController {
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Post()
   async createMachine(@Body() createMachineDto: CreateMachineDto) {
-    return this.machineService.createMachine(createMachineDto);
+    return this.machineService.create(createMachineDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -51,17 +51,17 @@ export class MachineController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateMachineDto: UpdateMachineDto,
   ) {
-    return this.machineService.updateMachine(id, updateMachineDto);
+    return this.machineService.update(id, updateMachineDto);
   }
 
-  @Roles(UserRole.OWNER, UserRole.OPERATOR)
-  @Patch(":id/transfer")
-  async transferMachine(
-    @Param("id", ParseUUIDPipe) id: string,
-    @Body("newFarmId", ParseUUIDPipe) newFarmId: string,
-  ): Promise<Machine> {
-    return this.machineService.transferMachine(id, newFarmId);
-  }
+  // @Roles(UserRole.OWNER, UserRole.OPERATOR)
+  // @Patch(":id/transfer")
+  // async transferMachine(
+  //   @Param("id", ParseUUIDPipe) id: string,
+  //   @Body("newFarmId", ParseUUIDPipe) newFarmId: string,
+  // ): Promise<Machine> {
+  //   return this.machineService.transferMachine(id, newFarmId);
+  // }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Delete(":id")
@@ -72,7 +72,7 @@ export class MachineController {
     registerNumber: string;
     message: string;
   }> {
-    return this.machineService.deleteMachineById(id);
+    return this.machineService.softDelete(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -86,7 +86,7 @@ export class MachineController {
     registerNumber: string;
     message: string;
   }> {
-    return this.machineService.permanentlyDeleteMachineByIdForOwner(id);
+    return this.machineService.permanentDelete(id);
   }
 }
 

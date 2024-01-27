@@ -1,212 +1,106 @@
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
+import { EntityManager, Repository } from "typeorm";
 import { Field } from "./field.entity";
-import { Soil } from "../soil/soil.entity";
 import { Farm } from "../farm/farm.entity";
-import { UserRole } from "../auth/dtos/role.enum";
-import { SoilService } from "../soil/soil.service";
-import { FarmService } from "../farm/farm.service";
 import { CreateFieldDto } from "./dtos/create-field.dto";
 import { UpdateFieldDto } from "./dtos/update-field.dto";
 import { GrowingCropPeriod } from "../growing-crop-period/growing-crop-period.entity";
 import { Crop } from "../crop/crop.entity";
+import { SoilService } from "src/soil/soil.service";
+import { FarmService } from "src/farm/farm.service";
 
 @Injectable()
 export class FieldService {
   constructor(
+    @InjectEntityManager() private readonly entityManager: EntityManager,
     @InjectRepository(Field) private fieldRepository: Repository<Field>,
     private soilService: SoilService,
     private farmService: FarmService,
   ) {}
 
-  // transformField and transformSoil -- use for findAllWithSoil and findById
-  private transformField(field: Field): Field {
-    return {
-      id: field.id,
-      name: field.name,
-      boundary: field.boundary,
-      created: field.created,
-      updated: field.updated,
-      deleted: field.deleted,
-      soil: field.soil ? this.transformSoil(field.soil) : null,
-      farm: field.farm,
-      growingCropPeriods: field.growingCropPeriods,
-    };
+  async findAll() {
+    const fields = await this.fieldRepository.find({});
+    if (!fields) {
+      throw new NotFoundException(`No fields found!`);
+    }
+    return fields;
   }
 
-  //The transformSoil function allows selectively include or exclude certain properties of the Soil entity in the transformed output.
-  private transformSoil(soil: Soil): Soil {
-    return {
-      id: soil.id,
-      name: soil.name,
-      created: soil.created,
-      updated: soil.updated,
-      deleted: soil.deleted,
-      fields: soil.fields || [],
-    };
-  }
-
-  async findAllFields() {
-    const fields = await this.fieldRepository
-      .createQueryBuilder("field")
-      .leftJoinAndSelect("field.soil", "soil")
-      .leftJoinAndSelect("field.farm", "farm")
-      .where("field.deleted IS NULL")
-      .getMany();
-
-    return fields.map((field) => this.transformField(field));
-  }
-
-  async findOne(id: string): Promise<Field> {
+  async findOneById(id: string): Promise<Field> {
     const existingFieldId = await this.fieldRepository.findOneBy({ id });
     return existingFieldId;
   }
 
-  async findOneById(id: string): Promise<Field> {
-    const existingField = await this.fieldRepository.findOne({ where: { id } });
-    return existingField;
-  }
-
-  async findById(id: string): Promise<Field> {
-    const field = await this.fieldRepository
-      .createQueryBuilder("field")
-      .leftJoinAndSelect("field.soil", "soil")
-      .leftJoinAndSelect("field.farm", "farm")
-      .andWhere("field.id = :id", { id })
-      .andWhere("field.deleted IS NULL")
-      .getOne();
-
-    if (!field) {
-      throw new NotFoundException(`Field with ID ${id} not found`);
-    }
-
-    return this.transformField(field);
-  }
-
-  async createField(createFieldDto: CreateFieldDto): Promise<Field> {
+  async create(createFieldDto: CreateFieldDto): Promise<Field> {
     const { name, boundary, soilId, farmId } = createFieldDto;
 
     const existingField = await this.fieldRepository.findOne({
-      withDeleted: true,
-      where: { name, farm: { id: farmId } },
-    });
-
-    if (existingField) {
-      if (existingField.deleted) {
-        existingField.deleted = null;
-        return await this.fieldRepository.save(existingField);
-      } else {
-        const farm = await this.farmService.findOneById(farmId);
-        const errorMessage = `Field with name: '${name}' already exists in farm: '${farm ? farm.name : "Unknown farm"}'`;
-        throw new ConflictException(errorMessage);
-      }
-    }
-
-    let farm: Farm;
-    const existingFieldInOtherFarms = await this.fieldRepository.findOne({
-      withDeleted: true,
       where: { name },
     });
 
-    const soil = await this.soilService.findOne(soilId);
+    if (existingField) {
+      throw new BadRequestException(`Field with name ${name} already exists!`);
+    }
+
+    const soil = await this.soilService.findOneById(soilId);
     if (!soil) {
-      throw new BadRequestException(`No soil found`);
+      throw new BadRequestException(`No soil found!`);
     }
 
-    farm = await this.farmService.findOneById(farmId);
+    const farm = await this.farmService.findOneById(farmId);
     if (!farm) {
-      throw new BadRequestException(`No farm with ${farm.id}`);
+      throw new BadRequestException(`No farm found!`);
     }
 
-    const field = this.fieldRepository.create({
+    const newField = this.fieldRepository.create({
       name,
       boundary,
-      soil,
-      farm,
+      farm_id: farmId,
+      soil_id: soilId,
     });
 
-    const createdField = await this.fieldRepository.save(field);
-    return createdField;
+    const newCreatedField = await this.fieldRepository.save(newField);
+    return newCreatedField;
   }
 
-  async updateField(
-    id: string,
-    updateFieldDto: UpdateFieldDto,
-  ): Promise<Field> {
-    // console.log("Received ID:", id);
-    const existingField = await this.fieldRepository.findOne({
-      where: { id },
-      relations: ["soil", "growingCropPeriods"],
-    });
-
+  async update(id: string, updateFieldDto: UpdateFieldDto): Promise<Field> {
+    const existingField = await this.fieldRepository.findOneBy({ id });
     if (!existingField) {
+      throw new NotFoundException(`Field with id ${id} not found`);
+    }
+
+    // Perform the update without fetching the entity
+    const updateResult = await this.fieldRepository.update(id, updateFieldDto);
+
+    // Check if the update was successful
+    if (updateResult.affected === 0) {
       throw new NotFoundException(`Field with ID ${id} not found`);
     }
 
-    // Check if the field is associated with any GrowingCropPeriods
-    if (
-      existingField.growingCropPeriods &&
-      existingField.growingCropPeriods.length > 0
-    ) {
-      throw new BadRequestException(
-        `This field ${existingField.name} has associated GrowingCropPeriods. Cannot update the farm.`,
-      );
+    // Fetch and return the updated field
+    const updatedField = await this.fieldRepository.findOneBy({ id });
+
+    if (!updatedField) {
+      throw new NotFoundException(`Updated field with ID ${id} not found`);
     }
 
-    if (updateFieldDto.soilId) {
-      let newSoil = await this.soilService.findOne(updateFieldDto.soilId);
-
-      existingField.soil = newSoil;
-    }
-
-    if (updateFieldDto.farmId) {
-      let newFarm = await this.farmService.findOne(updateFieldDto.farmId);
-
-      existingField.farm = newFarm;
-    }
-
-    if (updateFieldDto.name !== undefined) {
-      existingField.name = updateFieldDto.name;
-    }
-
-    if (updateFieldDto.boundary) {
-      existingField.boundary = updateFieldDto.boundary;
-    }
-
-    const updatedField = await this.fieldRepository.save(existingField);
-
-    // console.log("Updated Field:", updatedField);
     return updatedField;
   }
 
-  async deleteFieldById(
+  async softDelete(
     id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    const existingField = await this.fieldRepository.findOne({
-      where: { id },
-      relations: ["soil", "growingCropPeriods"],
-    });
+    const existingField = await this.fieldRepository.findOneBy({ id });
 
     if (!existingField) {
       throw new NotFoundException(`Field with id ${id} not found`);
     }
 
-    if (
-      existingField.growingCropPeriods &&
-      existingField.growingCropPeriods.length > 0
-    ) {
-      throw new BadRequestException(
-        `This field ${existingField.name} has associated growingCropPeriods. Cannot be soft deleted.`,
-      );
-    }
-
-    // Soft delete using the softDelete method
     await this.fieldRepository.softDelete({ id });
 
     return {
@@ -216,26 +110,15 @@ export class FieldService {
     };
   }
 
-  async permanentlyDeleteFieldByIdForOwner(
+  async permanentDelete(
     id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    const existingField = await this.fieldRepository.findOne({
-      where: { id },
-      relations: ["soil", "growingCropPeriods"],
-    });
+    const existingField = await this.fieldRepository.findOneBy({ id });
 
     if (!existingField) {
       throw new NotFoundException(`Field with id ${id} not found`);
     }
 
-    if (
-      existingField.growingCropPeriods &&
-      existingField.growingCropPeriods.length > 0
-    ) {
-      throw new BadRequestException(
-        `This field ${existingField.name} has associated growingCropPeriods. Cannot be permanent deleted.`,
-      );
-    }
     await this.fieldRepository.remove(existingField);
     return {
       id,
@@ -301,5 +184,13 @@ export class FieldService {
       .getRawMany();
 
     return fieldsPerFarmAndSoil;
+  }
+
+  async isSoilAssociatedFields(soilId: string): Promise<boolean> {
+    const count = await this.fieldRepository.count({
+      where: { soil_id: soilId },
+    });
+
+    return count > 0;
   }
 }

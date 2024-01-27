@@ -22,13 +22,7 @@ import { UserRole } from "../auth/dtos/role.enum";
 export class SoilController {
   constructor(private soilService: SoilService) {}
 
-  @Roles(UserRole.OWNER, UserRole.OPERATOR)
-  @Post("")
-  async createSoil(@Body() createSoilDto: CreateSoilDto) {
-    return this.soilService.createSoil(createSoilDto);
-  }
-
-  @Get("")
+  @Get()
   async getAllSoils() {
     const soils = await this.soilService.findAll();
     return { data: soils };
@@ -36,11 +30,17 @@ export class SoilController {
 
   @Get(":id")
   async getSoilById(@Param("id", ParseUUIDPipe) id: string) {
-    const soil = await this.soilService.findById(id);
+    const soil = await this.soilService.findOneById(id);
     if (!soil) {
       throw new NotFoundException("Soil not found");
     }
     return { data: soil };
+  }
+
+  @Roles(UserRole.OWNER, UserRole.OPERATOR)
+  @Post()
+  async createSoil(@Body() createSoilDto: CreateSoilDto) {
+    return this.soilService.create(createSoilDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -49,26 +49,22 @@ export class SoilController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateSoilDto: UpdateSoilDto,
   ) {
-    return this.soilService.updateSoil(id, updateSoilDto);
+    return this.soilService.update(id, updateSoilDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Delete(":id")
-  async deleteSoilById(
+  async softDetele(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.soilService.deleteSoilById(id);
+    return this.soilService.softDetele(id);
   }
 
   @Roles(UserRole.OWNER)
   @Delete(":id/permanent")
-  async permanentlyDeleteCountryByIdForOwner(
+  async permanentDelete(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    const userRole = UserRole.OWNER;
-
-    return this.soilService.permanentlyDeleteSoilByIdForOwner(id, userRole);
+    return this.soilService.permanentDelete(id);
   }
 }
-
-// When you use return with a promise inside an asynchronous function, the function automatically returns a promise that will be resolved with the value returned from the asynchronous operation. Here's the corrected explanation:

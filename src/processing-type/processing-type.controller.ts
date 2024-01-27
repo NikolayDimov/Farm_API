@@ -28,7 +28,7 @@ export class ProcessingTypeController {
 
   @Get(":id")
   async getCropById(@Param("id", ParseUUIDPipe) id: string) {
-    return this.processingTypeService.findById(id);
+    return this.processingTypeService.findOneById(id);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -36,9 +36,7 @@ export class ProcessingTypeController {
   async createProcessing(
     @Body() createProcessingTypeDto: CreateProcessingTypeDto,
   ) {
-    return this.processingTypeService.createProcessingType(
-      createProcessingTypeDto,
-    );
+    return this.processingTypeService.create(createProcessingTypeDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -47,10 +45,7 @@ export class ProcessingTypeController {
     @Param("id") id: string,
     @Body() updateProcessingTypeDto: UpdateProcessingTypeDto,
   ) {
-    return this.processingTypeService.updateProcessingType(
-      id,
-      updateProcessingTypeDto,
-    );
+    return this.processingTypeService.update(id, updateProcessingTypeDto);
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -62,7 +57,7 @@ export class ProcessingTypeController {
     name: string;
     message: string;
   }> {
-    return this.processingTypeService.deleteProcessingTypeById(id);
+    return this.processingTypeService.softDelete(id);
   }
 
   @Roles(UserRole.OWNER)
@@ -70,8 +65,6 @@ export class ProcessingTypeController {
   async permanentlyDeleteProcessingTypeForOwner(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
-    return this.processingTypeService.permanentlyDeleteProcessingTypeForOwner(
-      id,
-    );
+    return this.processingTypeService.permanentDelete(id);
   }
 }
