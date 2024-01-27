@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -38,6 +39,30 @@ export class FarmService {
 
     const { name, location } = createFarmDto;
 
+    const existingFarm = await this.farmRepository.findOne({
+      withDeleted: true,
+      where: { name },
+    });
+
+    if (existingFarm) {
+      // If the farm exists and is soft-deleted, restore it
+      if (existingFarm.deleted) {
+        existingFarm.deleted = null;
+        return await this.farmRepository.save(existingFarm);
+      } else {
+        // If the farm is not soft-deleted, throw a conflict exception
+        throw new ConflictException(`Farm with name: ${name} already exists`);
+      }
+    }
+
+    // const existingFarm = await this.farmRepository.findOne({
+    //   where: { name },
+    // });
+
+    // if (existingFarm && createFarmDto.name === existingFarm.name) {
+    //   throw new BadRequestException(`Farm already exists!`);
+    // }
+
     if (
       !location ||
       !location.coordinates ||
@@ -45,14 +70,6 @@ export class FarmService {
       !location.coordinates.every((coord) => typeof coord === "number")
     ) {
       throw new Error("Invalid coordinates provided");
-    }
-
-    const existingFarm = await this.farmRepository.findOne({
-      where: { name },
-    });
-
-    if (existingFarm && createFarmDto.name === existingFarm.name) {
-      throw new BadRequestException(`Farm already exists!`);
     }
 
     const newFarm = this.farmRepository.create({
@@ -74,9 +91,13 @@ export class FarmService {
     }
 
     if (updateFarmDto.name || updateFarmDto.location) {
+      const updatedLocation = updateFarmDto.location
+        ? { ...updateFarmDto.location, type: "Point" }
+        : undefined;
+
       await this.farmRepository.update(id, {
         name: updateFarmDto.name,
-        location: updateFarmDto.location,
+        location: updatedLocation,
       });
     }
 

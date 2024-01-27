@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from "@nestjs/common";
 import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
 import { EntityManager, Repository } from "typeorm";
@@ -41,12 +42,28 @@ export class SoilService {
     const { name } = createSoilDto;
 
     const existingSoil = await this.soilRepository.findOne({
+      withDeleted: true,
       where: { name },
     });
 
-    if (existingSoil && createSoilDto.name === existingSoil.name) {
-      throw new BadRequestException(`Soil already exists!`);
+    if (existingSoil) {
+      // If the soil exists and is soft-deleted, restore it
+      if (existingSoil.deleted) {
+        existingSoil.deleted = null;
+        return await this.soilRepository.save(existingSoil);
+      } else {
+        // If the soil is not soft-deleted, throw a conflict exception
+        throw new ConflictException(`Soil ${name} already exists`);
+      }
     }
+
+    // const existingSoil = await this.soilRepository.findOne({
+    //   where: { name },
+    // });
+
+    // if (existingSoil && createSoilDto.name === existingSoil.name) {
+    //   throw new BadRequestException(`Soil already exists!`);
+    // }
 
     const newSoil = this.soilRepository.create({ name });
     const newCreatedSoil = await this.soilRepository.save(newSoil);
