@@ -56,7 +56,6 @@ export class SoilService {
         throw new ConflictException(`Soil ${name} already exists`);
       }
     }
-
     // const existingSoil = await this.soilRepository.findOne({
     //   where: { name },
     // });
@@ -77,6 +76,16 @@ export class SoilService {
     }
 
     if (updateSoilDto.name) {
+      const existingSoilWithSameName = await this.soilRepository.findOne({
+        where: { name: updateSoilDto.name },
+      });
+
+      if (existingSoilWithSameName && existingSoilWithSameName.id !== id) {
+        throw new ConflictException(
+          `Soil with name ${updateSoilDto.name} already exists`,
+        );
+      }
+
       await this.soilRepository.update(id, { name: updateSoilDto.name });
     }
 
@@ -94,7 +103,7 @@ export class SoilService {
     const existingSoil = await this.soilRepository.findOneBy({ id });
 
     if (!existingSoil) {
-      throw new NotFoundException(`Country with id ${id} not found`);
+      throw new NotFoundException(`Soil with id ${id} not found`);
     }
 
     const isSoilAssociatedWithFields = await this.entityManager

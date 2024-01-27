@@ -19,8 +19,8 @@ export class FieldService {
   constructor(
     @InjectEntityManager() private readonly entityManager: EntityManager,
     @InjectRepository(Field) private fieldRepository: Repository<Field>,
-    private soilService: SoilService,
-    private farmService: FarmService,
+    private readonly soilService: SoilService,
+    private readonly farmService: FarmService,
   ) {}
 
   async findAll() {

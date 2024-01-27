@@ -23,20 +23,19 @@ export class FarmController {
 
   @Get()
   async getAllFarms() {
-    const transformedFarms = await this.farmService.findAll();
-    return { data: transformedFarms };
+    const farms = await this.farmService.findAll();
+    return { data: farms };
   }
 
   @Get(":id")
   async getFarmById(@Param("id", ParseUUIDPipe) id: string) {
-    const transformedFarm = await this.farmService.findOneById(id);
-    return { data: transformedFarm };
+    const farm = await this.farmService.findOneById(id);
+    return { data: farm };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Post()
   async createFarm(@Body() createFarmDto: CreateFarmDto) {
-    //console.log("Received request payload:", createFarmDto);
     const createdFarm = await this.farmService.create(createFarmDto);
     return { data: createdFarm };
   }

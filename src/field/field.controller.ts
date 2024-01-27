@@ -24,14 +24,14 @@ export class FieldController {
 
   @Get()
   async getAllFields() {
-    const transformedFields = await this.fieldService.findAll();
-    return { data: transformedFields };
+    const fields = await this.fieldService.findAll();
+    return { data: fields };
   }
 
   @Get(":id")
   async getFieldById(@Param("id", ParseUUIDPipe) id: string) {
-    const transformedField = await this.fieldService.findOneById(id);
-    return { data: transformedField };
+    const field = await this.fieldService.findOneById(id);
+    return { data: field };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
