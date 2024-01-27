@@ -76,21 +76,20 @@ export class FieldService {
 
   async update(id: string, updateFieldDto: UpdateFieldDto): Promise<Field> {
     const existingField = await this.fieldRepository.findOneBy({ id });
+
     if (!existingField) {
       throw new NotFoundException(`Field with id ${id} not found`);
     }
 
-    // Perform the update without fetching the entity
-    const updateResult = await this.fieldRepository.update(id, updateFieldDto);
+    const updatedProperties: Partial<Field> = {
+      name: updateFieldDto.name,
+      boundary: updateFieldDto.boundary,
+      soil_id: updateFieldDto.soilId, // Ensure the property is mapped correctly
+    };
 
-    // Check if the update was successful
-    if (updateResult.affected === 0) {
-      throw new NotFoundException(`Field with ID ${id} not found`);
-    }
+    await this.fieldRepository.update(id, updatedProperties);
 
-    // Fetch and return the updated field
     const updatedField = await this.fieldRepository.findOneBy({ id });
-
     if (!updatedField) {
       throw new NotFoundException(`Updated field with ID ${id} not found`);
     }
