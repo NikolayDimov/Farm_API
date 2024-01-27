@@ -13,6 +13,7 @@ import { GrowingCropPeriod } from "../growing-crop-period/growing-crop-period.en
 import { Crop } from "../crop/crop.entity";
 import { SoilService } from "src/soil/soil.service";
 import { FarmService } from "src/farm/farm.service";
+import { validate } from "class-validator";
 
 @Injectable()
 export class FieldService {
@@ -37,6 +38,11 @@ export class FieldService {
   }
 
   async create(createFieldDto: CreateFieldDto): Promise<Field> {
+    const errors = await validate(createFieldDto);
+    if (errors.length > 0) {
+      throw new BadRequestException(errors);
+    }
+
     const { name, boundary, soilId, farmId } = createFieldDto;
 
     const existingField = await this.fieldRepository.findOne({
@@ -106,7 +112,7 @@ export class FieldService {
     return {
       id,
       name: existingField.name,
-      message: `Successfully soft-deleted Field with id ${id} and name ${existingField.name}`,
+      message: `${id}`,
     };
   }
 
@@ -123,7 +129,7 @@ export class FieldService {
     return {
       id,
       name: existingField.name,
-      message: `Successfully permanently deleted Field with id ${id} and name ${existingField.name}`, // TODO - leave id only
+      message: `${id}`,
     };
   }
 

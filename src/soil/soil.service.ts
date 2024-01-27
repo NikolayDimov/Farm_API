@@ -109,7 +109,7 @@ export class SoilService {
     const isSoilAssociatedWithFields = await this.entityManager
       .getRepository(Field)
       .createQueryBuilder("field")
-      .where("field.soil_id = :soilId", { soilId: id })
+      .where("field.soil_id = :id", { id })
       .getCount();
 
     if (isSoilAssociatedWithFields > 0) {
@@ -139,7 +139,7 @@ export class SoilService {
     const isSoilAssociatedWithFields = await this.entityManager
       .getRepository(Field)
       .createQueryBuilder("field")
-      .where("field.soil_id = :soilId", { soilId: id })
+      .where("field.soil_id = :id", { id })
       .getCount();
 
     if (isSoilAssociatedWithFields > 0) {

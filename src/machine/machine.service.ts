@@ -9,6 +9,8 @@ import { validate } from "class-validator";
 import { Machine } from "./machine.entity";
 import { CreateMachineDto } from "./dtos/create-machine.dto";
 import { UpdateMachineDto } from "./dtos/update-machine.dto";
+import { FarmService } from "src/farm/farm.service";
+import { Processing } from "src/processing/processing.entity";
 
 @Injectable()
 export class MachineService {
@@ -16,30 +18,20 @@ export class MachineService {
     @InjectEntityManager() private readonly entityManager: EntityManager,
     @InjectRepository(Machine)
     private machineRepository: Repository<Machine>,
+    private readonly farmService: FarmService,
   ) {}
-
-  async findOneByName(
-    brand: string,
-    model: string,
-    registerNumber: string,
-  ): Promise<Machine> {
-    const machineName = await this.machineRepository.findOne({
-      where: { brand, model, registerNumber },
-    });
-    return machineName;
-  }
 
   async findAll() {
     const machines = await this.machineRepository.find({});
     if (!machines) {
-      throw new NotFoundException(`No machines found`);
+      throw new NotFoundException(`No machine found!`);
     }
     return machines;
   }
 
   async findOneById(id: string): Promise<Machine> {
-    const existingmMachine = await this.machineRepository.findOneBy({ id });
-    return existingmMachine;
+    const existingMachineId = await this.machineRepository.findOneBy({ id });
+    return existingMachineId;
   }
 
   async create(createMachineDto: CreateMachineDto): Promise<Machine> {
@@ -50,19 +42,19 @@ export class MachineService {
 
     const { brand, model, registerNumber, farmId } = createMachineDto;
 
-    // const farm = await this.farmService.findOneById(farmId);
-    // if (!farm) {
-    //   throw new BadRequestException(`No farm found!`);
-    // }
-
     const existingMachine = await this.machineRepository.findOne({
       where: { registerNumber },
     });
 
-    if (createMachineDto.registerNumber === existingMachine.registerNumber) {
+    if (existingMachine && existingMachine.registerNumber === registerNumber) {
       throw new BadRequestException(
-        `Machine with register number already exists!`,
+        `Machine with register ${registerNumber} number already exists!`,
       );
+    }
+
+    const farm = await this.farmService.findOneById(farmId);
+    if (!farm) {
+      throw new BadRequestException(`No farm found!`);
     }
 
     const newMachine = this.machineRepository.create({
@@ -81,23 +73,33 @@ export class MachineService {
     updateMachineDto: UpdateMachineDto,
   ): Promise<Machine> {
     const existingMachine = await this.machineRepository.findOneBy({ id });
+
     if (!existingMachine) {
       throw new NotFoundException(`Machine with id ${id} not found`);
     }
 
-    // const isMachineAssociatedWithProcessings =
-    //   await this.processingService.isMachineAssociatedWithProcessings(id);
+    if (
+      updateMachineDto.registerNumber &&
+      existingMachine.registerNumber !== updateMachineDto.registerNumber
+    ) {
+      const duplicateMachine = await this.machineRepository.findOne({
+        where: { registerNumber: updateMachineDto.registerNumber },
+      });
 
-    // if (isMachineAssociatedWithProcessings) {
-    //   throw new BadRequestException(
-    //     `This field with ID ${id} has associated GrowingCropPeriods. Cannot update the field.`,
-    //   );
-    // }
+      if (duplicateMachine) {
+        throw new BadRequestException(
+          `Machine with register ${updateMachineDto.registerNumber} number already exists!`,
+        );
+      }
+    }
 
+    // Perform the update without fetching the entity
     const updateResult = await this.machineRepository.update(
       id,
       updateMachineDto,
     );
+
+    // Check if the update was successful
     if (updateResult.affected === 0) {
       throw new NotFoundException(`Machine with ID ${id} not found`);
     }
@@ -113,33 +115,35 @@ export class MachineService {
   }
 
   // Tarnsferring machine from one Farm to another
-  // async transferMachine(id: string, newFarmId: string): Promise<Machine> {
-  //   const existingMachine = await this.machineRepository.findOne({
-  //     where: { id },
-  //     relations: ["processings", "farm"],
-  //   });
+  async transferMachine(id: string, newFarmId: string): Promise<Machine> {
+    const existingMachine = await this.machineRepository.findOneBy({ id });
 
-  //   if (!existingMachine) {
-  //     throw new NotFoundException(`Machine with id ${id} not found`);
-  //   }
+    if (!existingMachine) {
+      throw new NotFoundException(`Machine with id ${id} not found`);
+    }
 
-  //   if (existingMachine.processings && existingMachine.processings.length > 0) {
-  //     throw new BadRequestException(
-  //       "This machine has associated processing. Cannot be transferred.",
-  //     );
-  //   }
+    const isMachineAssociatedWithProcessing = await this.entityManager
+      .getRepository(Processing)
+      .createQueryBuilder("processing")
+      .where("processing.machine_id = :id", { id })
+      .getCount();
 
-  //   // Validate and update the farm
-  //   const newFarm = await this.farmService.findOne(newFarmId);
+    if (isMachineAssociatedWithProcessing > 0) {
+      throw new BadRequestException(
+        `This machine with ID ${id} has associated processing. Cannot delete the machine.`,
+      );
+    }
 
-  //   if (!newFarm) {
-  //     throw new BadRequestException("No farm found with the provided farmId");
-  //   }
+    // Validate and update the farm
+    const changedFarm = await this.farmService.findOneById(newFarmId);
+    if (!changedFarm) {
+      throw new BadRequestException(`No farm found!`);
+    }
 
-  //   existingMachine.farm = newFarm;
+    existingMachine.farm_id = newFarmId;
 
-  //   return await this.machineRepository.save(existingMachine);
-  // }
+    return await this.machineRepository.save(existingMachine);
+  }
 
   async softDelete(id: string): Promise<{
     id: string;
@@ -154,15 +158,6 @@ export class MachineService {
       throw new NotFoundException(`Machine with id ${id} not found`);
     }
 
-    // const isMachineAssociatedWithProcessings =
-    //   await this.processingService.isMachineAssociatedWithProcessings(id);
-
-    // if (isMachineAssociatedWithProcessings) {
-    //   throw new BadRequestException(
-    //     `This machine with ID ${id} has associated Processing. Cannot delete the machine.`,
-    //   );
-    // }
-
     await this.machineRepository.softDelete({ id });
 
     return {
@@ -170,7 +165,7 @@ export class MachineService {
       brand: existingMachine.brand,
       model: existingMachine.model,
       registerNumber: existingMachine.registerNumber,
-      message: `Successfully soft deleted Machine with id ${id}, Brand ${existingMachine.brand}, Model ${existingMachine.model} and Register Number ${existingMachine.registerNumber}`,
+      message: `${id}`,
     };
   }
 
@@ -187,15 +182,6 @@ export class MachineService {
       throw new NotFoundException(`Machine with id ${id} not found`);
     }
 
-    // const isMachineAssociatedWithProcessings =
-    //   await this.processingService.isMachineAssociatedWithProcessings(id);
-
-    // if (isMachineAssociatedWithProcessings) {
-    //   throw new BadRequestException(
-    //     `This machine with ID ${id} has associated Processing. Cannot delete the machine.`,
-    //   );
-    // }
-
     await this.machineRepository.remove(existingMachine);
 
     return {
@@ -203,7 +189,7 @@ export class MachineService {
       brand: existingMachine.brand,
       model: existingMachine.model,
       registerNumber: existingMachine.registerNumber,
-      message: `Successfully permanently deleted Machine with id ${id}, Brand ${existingMachine.brand}, Model ${existingMachine.model} and Register Number ${existingMachine.registerNumber}`,
+      message: `${id}`,
     };
   }
 }

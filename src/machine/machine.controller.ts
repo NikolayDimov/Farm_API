@@ -51,17 +51,21 @@ export class MachineController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateMachineDto: UpdateMachineDto,
   ) {
-    return this.machineService.update(id, updateMachineDto);
+    const updatedMachine = await this.machineService.update(
+      id,
+      updateMachineDto,
+    );
+    return { data: updatedMachine };
   }
 
-  // @Roles(UserRole.OWNER, UserRole.OPERATOR)
-  // @Patch(":id/transfer")
-  // async transferMachine(
-  //   @Param("id", ParseUUIDPipe) id: string,
-  //   @Body("newFarmId", ParseUUIDPipe) newFarmId: string,
-  // ): Promise<Machine> {
-  //   return this.machineService.transferMachine(id, newFarmId);
-  // }
+  @Roles(UserRole.OWNER, UserRole.OPERATOR)
+  @Patch(":id/transfer")
+  async transferMachine(
+    @Param("id", ParseUUIDPipe) id: string,
+    @Body("newFarmId", ParseUUIDPipe) newFarmId: string,
+  ): Promise<Machine> {
+    return this.machineService.transferMachine(id, newFarmId);
+  }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Delete(":id")
