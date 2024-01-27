@@ -71,21 +71,16 @@ export class GrowingCropPeriodService {
       throw new NotFoundException(`GrowingCropPeriod with id ${id} not found`);
     }
 
-    // Manually create an object with the properties to update
     const updatedGrowingCropPeriod: Partial<GrowingCropPeriod> = {};
-
     if (updateGrowingCropPeriodDto.fieldId) {
       updatedGrowingCropPeriod.field_id = updateGrowingCropPeriodDto.fieldId;
     }
-
     if (updateGrowingCropPeriodDto.cropId) {
       updatedGrowingCropPeriod.crop_id = updateGrowingCropPeriodDto.cropId;
     }
 
-    // Update the entity
     await this.growingCropPeriodRepository.update(id, updatedGrowingCropPeriod);
 
-    // Fetch and return the updated entity
     const updatedEntity = await this.growingCropPeriodRepository.findOneBy({
       id,
     });
