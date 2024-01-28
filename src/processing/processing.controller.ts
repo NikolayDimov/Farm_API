@@ -15,9 +15,6 @@ import { ProcessingService } from "./processing.service";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorator/roles.decorator";
 import { UserRole } from "../auth/dtos/role.enum";
-import { ProcessingType } from "../processing-type/processing-type.entity";
-import { GrowingCropPeriod } from "../growing-crop-period/growing-crop-period.entity";
-import { Machine } from "../machine/machine.entity";
 
 @Controller("processing")
 @UseGuards(RolesGuard)
@@ -25,24 +22,24 @@ export class ProcessingController {
   constructor(private processingService: ProcessingService) {}
 
   @Get()
-  async getAllFields() {
-    const transformedProcessing = await this.processingService.findAll();
-    return { data: transformedProcessing };
+  async getAllProcessings() {
+    const processing = await this.processingService.findAll();
+    return { data: processing };
   }
 
   @Get(":id")
   async getProcessingById(@Param("id", ParseUUIDPipe) id: string) {
-    const transformedField = await this.processingService.findOneById(id);
-    return { data: transformedField };
+    const processings = await this.processingService.findOneById(id);
+    return { data: processings };
   }
 
-  // @Roles(UserRole.OWNER, UserRole.OPERATOR)
-  // @Post()
-  // async createProcessing(@Body() createProcessingDto: CreateProcessingDto) {
-  //   const createdProcessing =
-  //     await this.processingService.create(createProcessingDto);
-  //   return { data: createdProcessing };
-  // }
+  @Roles(UserRole.OWNER, UserRole.OPERATOR)
+  @Post()
+  async createProcessing(@Body() createProcessingDto: CreateProcessingDto) {
+    const createdProcessing =
+      await this.processingService.create(createProcessingDto);
+    return { data: createdProcessing };
+  }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Patch(":id")

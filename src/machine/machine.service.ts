@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from "@nestjs/common";
 import { InjectEntityManager, InjectRepository } from "@nestjs/typeorm";
-import { EntityManager, Repository } from "typeorm";
+import { EntityManager, Not, Repository } from "typeorm";
 import { validate } from "class-validator";
 import { Machine } from "./machine.entity";
 import { CreateMachineDto } from "./dtos/create-machine.dto";
@@ -86,7 +86,7 @@ export class MachineService {
       existingMachine.registerNumber !== updateMachineDto.registerNumber
     ) {
       const duplicateMachine = await this.machineRepository.findOne({
-        where: { registerNumber: updateMachineDto.registerNumber },
+        where: { registerNumber: updateMachineDto.registerNumber, id: Not(id) },
       });
 
       if (duplicateMachine) {
@@ -96,20 +96,16 @@ export class MachineService {
       }
     }
 
-    // Perform the update without fetching the entity
     const updateResult = await this.machineRepository.update(
       id,
       updateMachineDto,
     );
 
-    // Check if the update was successful
     if (updateResult.affected === 0) {
       throw new NotFoundException(`Machine with ID ${id} not found`);
     }
 
-    // Fetch and return the updated field
     const updatedMachine = await this.machineRepository.findOneBy({ id });
-
     if (!updatedMachine) {
       throw new NotFoundException(`Updated machine with ID ${id} not found`);
     }
