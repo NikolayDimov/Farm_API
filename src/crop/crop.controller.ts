@@ -8,6 +8,7 @@ import {
   Body,
   Param,
   ParseUUIDPipe,
+  NotFoundException,
 } from "@nestjs/common";
 import { CropService } from "./crop.service";
 import { CreateCropDto } from "./dtos/create-crop.dto";
@@ -23,18 +24,21 @@ export class CropController {
 
   @Get()
   async getAllCrops() {
-    return this.cropService.findAll();
+    const crops = await this.cropService.findAll();
+    return { data: crops };
   }
 
   @Get(":id")
   async getCropById(@Param("id", ParseUUIDPipe) id: string) {
-    return this.cropService.findOneById(id);
+    const crop = await this.cropService.findOneById(id);
+    return { data: crop };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Post()
   async createCrop(@Body() createCropDto: CreateCropDto) {
-    return this.cropService.create(createCropDto);
+    const createdCrip = await this.cropService.create(createCropDto);
+    return { data: createdCrip };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -43,7 +47,8 @@ export class CropController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateCropDto: UpdateCropDto,
   ) {
-    return this.cropService.update(id, updateCropDto);
+    const updatedCrop = await this.cropService.update(id, updateCropDto);
+    return { data: updatedCrop };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)

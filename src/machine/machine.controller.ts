@@ -32,17 +32,14 @@ export class MachineController {
   @Get(":id")
   async getMachineById(@Param("id", ParseUUIDPipe) id: string) {
     const machine = await this.machineService.findOneById(id);
-    if (!machine) {
-      throw new NotFoundException("Machine not found");
-    }
-
     return { data: machine };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Post()
   async createMachine(@Body() createMachineDto: CreateMachineDto) {
-    return this.machineService.create(createMachineDto);
+    const createdMachine = await this.machineService.create(createMachineDto);
+    return { data: createdMachine };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -93,5 +90,3 @@ export class MachineController {
     return this.machineService.permanentDelete(id);
   }
 }
-
-// When you use return with a promise inside an asynchronous function, the function automatically returns a promise that will be resolved with the value returned from the asynchronous operation. Here's the corrected explanation:

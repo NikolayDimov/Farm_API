@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -9,6 +10,7 @@ import { ProcessingType } from "./processing-type.entity";
 import { validate } from "class-validator";
 import { CreateProcessingTypeDto } from "./dtos/create-processing-type.dto";
 import { UpdateProcessingTypeDto } from "./dtos/update-prcessing-type.dto";
+import { Processing } from "src/processing/processing.entity";
 
 @Injectable()
 export class ProcessingTypeService {
@@ -28,9 +30,7 @@ export class ProcessingTypeService {
 
   async findOneById(id: string): Promise<ProcessingType> {
     const existingProcessingType =
-      await this.processingTypeRepository.findOneBy({
-        id,
-      });
+      await this.processingTypeRepository.findOneBy({ id });
     return existingProcessingType;
   }
 
@@ -46,12 +46,30 @@ export class ProcessingTypeService {
     const { name } = createProcessingTypeDto;
 
     const existingProcessingType = await this.processingTypeRepository.findOne({
+      withDeleted: true,
       where: { name },
     });
 
-    if (createProcessingTypeDto.name === existingProcessingType.name) {
-      throw new BadRequestException(`Processing type already exists!`);
+    if (existingProcessingType) {
+      // If the ProcessingType exists and is soft-deleted, restore it
+      if (existingProcessingType.deleted) {
+        existingProcessingType.deleted = null;
+        return await this.processingTypeRepository.save(existingProcessingType);
+      } else {
+        // If the soil is not soft-deleted, throw a conflict exception
+        throw new ConflictException(`Processng Type ${name} already exists`);
+      }
     }
+    // const existingProcessingType = await this.processingTypeRepository.findOne({
+    //   where: { name },
+    // });
+
+    // if (
+    //   existingProcessingType &&
+    //   createProcessingTypeDto.name === existingProcessingType.name
+    // ) {
+    //   throw new BadRequestException(`Processing type already exists!`);
+    // }
 
     const newProcessingType = this.processingTypeRepository.create({
       name,
@@ -67,8 +85,23 @@ export class ProcessingTypeService {
   ): Promise<ProcessingType> {
     const existingProcessingType =
       await this.processingTypeRepository.findOneBy({ id });
+    if (!existingProcessingType) {
+      throw new NotFoundException(`Processing Type with ID ${id} not found`);
+    }
 
     if (updateProcessingTypeDto.name) {
+      const existingProcessingTypeWithSameName =
+        await this.processingTypeRepository.findOne({
+          where: { name: updateProcessingTypeDto.name },
+        });
+      if (
+        existingProcessingTypeWithSameName &&
+        existingProcessingTypeWithSameName.id !== id
+      ) {
+        throw new ConflictException(
+          `Processing Type with name ${updateProcessingTypeDto.name} already exists`,
+        );
+      }
       await this.processingTypeRepository.update(id, {
         name: updateProcessingTypeDto.name,
       });
@@ -98,24 +131,24 @@ export class ProcessingTypeService {
       throw new NotFoundException(`Processing Type with id ${id} not found`);
     }
 
-    // const isProcessingTypeAssociatedWithProcessings =
-    //   await this.processingService.isProcessingTypeAssociatedWithProcessings(
-    //     id,
-    //   );
+    const isProcessingTypeAssociatedWithProcessing = await this.entityManager
+      .getRepository(Processing)
+      .createQueryBuilder("processing")
+      .where("processing.processing_type_id = :id", { id })
+      .getCount();
 
-    // if (isProcessingTypeAssociatedWithProcessings) {
-    //   throw new BadRequestException(
-    //     `This processing type with ID ${id} has associated Processing. Cannot delete the processing type.`,
-    //   );
-    // }
+    if (isProcessingTypeAssociatedWithProcessing > 0) {
+      throw new BadRequestException(
+        `This Processing type with ID ${id} has associated processing. Cannot delete the processing type.`,
+      );
+    }
 
-    // Soft delete using the softDelete method
     await this.processingTypeRepository.softDelete({ id });
 
     return {
       id,
       name: existingProcessingType.name,
-      message: `Successfully permanently deleted Processing Type with id ${id}, name ${existingProcessingType.name}`,
+      message: `${id}`,
     };
   }
 
@@ -129,24 +162,24 @@ export class ProcessingTypeService {
       throw new NotFoundException(`Processing Type with id ${id} not found`);
     }
 
-    // const isProcessingTypeAssociatedWithProcessings =
-    //   await this.processingService.isProcessingTypeAssociatedWithProcessings(
-    //     id,
-    //   );
+    const isProcessingTypeAssociatedWithProcessing = await this.entityManager
+      .getRepository(Processing)
+      .createQueryBuilder("processing")
+      .where("processing.processing_type_id = :id", { id })
+      .getCount();
 
-    // if (isProcessingTypeAssociatedWithProcessings) {
-    //   throw new BadRequestException(
-    //     `This processing type with ID ${id} has associated Processing. Cannot delete the processing type.`,
-    //   );
-    // }
+    if (isProcessingTypeAssociatedWithProcessing > 0) {
+      throw new BadRequestException(
+        `This Processing type with ID ${id} has associated processing. Cannot delete the processing type.`,
+      );
+    }
 
-    // Perform the permanent delete
     await this.processingTypeRepository.remove(existingProcessingType);
 
     return {
       id,
       name: existingProcessingType.name,
-      message: `Successfully permanently deleted Processing Type with id ${id}, name ${existingProcessingType.name}`,
+      message: `${id}`,
     };
   }
 }

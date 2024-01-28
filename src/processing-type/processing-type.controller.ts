@@ -8,6 +8,7 @@ import {
   UseGuards,
   ParseUUIDPipe,
   Patch,
+  NotFoundException,
 } from "@nestjs/common";
 import { Roles } from "../auth/decorator/roles.decorator";
 import { UserRole } from "../auth/dtos/role.enum";
@@ -23,12 +24,14 @@ export class ProcessingTypeController {
 
   @Get()
   async getAllProcessingType() {
-    return this.processingTypeService.findAll();
+    const processingTypes = await this.processingTypeService.findAll();
+    return { data: processingTypes };
   }
 
   @Get(":id")
-  async getCropById(@Param("id", ParseUUIDPipe) id: string) {
-    return this.processingTypeService.findOneById(id);
+  async getProcessingTypeById(@Param("id", ParseUUIDPipe) id: string) {
+    const processingType = await this.processingTypeService.findOneById(id);
+    return { data: processingType };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -36,7 +39,10 @@ export class ProcessingTypeController {
   async createProcessing(
     @Body() createProcessingTypeDto: CreateProcessingTypeDto,
   ) {
-    return this.processingTypeService.create(createProcessingTypeDto);
+    const createdProcessingType = await this.processingTypeService.create(
+      createProcessingTypeDto,
+    );
+    return { data: createdProcessingType };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -45,7 +51,11 @@ export class ProcessingTypeController {
     @Param("id") id: string,
     @Body() updateProcessingTypeDto: UpdateProcessingTypeDto,
   ) {
-    return this.processingTypeService.update(id, updateProcessingTypeDto);
+    const updatedProcessingType = await this.processingTypeService.update(
+      id,
+      updateProcessingTypeDto,
+    );
+    return { data: updatedProcessingType };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)

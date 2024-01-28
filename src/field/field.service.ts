@@ -34,6 +34,9 @@ export class FieldService {
 
   async findOneById(id: string): Promise<Field> {
     const existingFieldId = await this.fieldRepository.findOneBy({ id });
+    if (!existingFieldId) {
+      throw new NotFoundException(`No field found!`);
+    }
     return existingFieldId;
   }
 

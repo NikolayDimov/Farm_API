@@ -31,16 +31,14 @@ export class SoilController {
   @Get(":id")
   async getSoilById(@Param("id", ParseUUIDPipe) id: string) {
     const soil = await this.soilService.findOneById(id);
-    if (!soil) {
-      throw new NotFoundException("Soil not found");
-    }
     return { data: soil };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
   @Post()
   async createSoil(@Body() createSoilDto: CreateSoilDto) {
-    return this.soilService.create(createSoilDto);
+    const createdSoil = await this.soilService.create(createSoilDto);
+    return { data: createdSoil };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)
@@ -49,7 +47,8 @@ export class SoilController {
     @Param("id", ParseUUIDPipe) id: string,
     @Body() updateSoilDto: UpdateSoilDto,
   ) {
-    return this.soilService.update(id, updateSoilDto);
+    const updatedSoil = await this.soilService.update(id, updateSoilDto);
+    return { data: updatedSoil };
   }
 
   @Roles(UserRole.OWNER, UserRole.OPERATOR)

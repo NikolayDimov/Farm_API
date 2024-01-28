@@ -24,13 +24,16 @@ export class MachineService {
   async findAll() {
     const machines = await this.machineRepository.find({});
     if (!machines) {
-      throw new NotFoundException(`No machine found!`);
+      throw new NotFoundException(`No machines found!`);
     }
     return machines;
   }
 
   async findOneById(id: string): Promise<Machine> {
     const existingMachineId = await this.machineRepository.findOneBy({ id });
+    if (!existingMachineId) {
+      throw new NotFoundException(`No machine found!`);
+    }
     return existingMachineId;
   }
 

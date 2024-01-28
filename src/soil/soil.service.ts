@@ -30,6 +30,9 @@ export class SoilService {
 
   async findOneById(id: string): Promise<Soil> {
     const existingSoildId = await this.soilRepository.findOneBy({ id });
+    if (!existingSoildId) {
+      throw new NotFoundException(`No soil found`);
+    }
     return existingSoildId;
   }
 
