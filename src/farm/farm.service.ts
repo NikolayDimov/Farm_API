@@ -151,11 +151,15 @@ export class FarmService {
   > {
     const result = await this.farmRepository
       .createQueryBuilder("farm")
-      .leftJoinAndSelect("farm.machines", "machines")
+      .leftJoin(
+        "machine",
+        "machines",
+        "machines.farm_id = farm.id", // Adjust this line based on your column names
+      )
       .select([
         "farm.id as farmId",
         "farm.name as farmName",
-        "CAST(COUNT(DISTINCT machines.id)AS INTEGER) as machineCount",
+        "CAST(COUNT(DISTINCT machines.id) AS INTEGER) as machineCount",
       ])
       .groupBy("farm.id, farm.name")
       .orderBy("machineCount", "DESC")
