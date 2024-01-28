@@ -14,6 +14,11 @@ import { GrowingCropPeriodService } from "src/growing-crop-period/growing-crop-p
 import { ProcessingTypeService } from "src/processing-type/processing-type.service";
 import { MachineService } from "src/machine/machine.service";
 import { validate } from "class-validator";
+import { ProcessingType } from "src/processing-type/processing-type.entity";
+import { Field } from "src/field/field.entity";
+import { Soil } from "src/soil/soil.entity";
+import { Farm } from "src/farm/farm.entity";
+import { Crop } from "src/crop/crop.entity";
 
 @Injectable()
 export class ProcessingService {
@@ -206,51 +211,30 @@ export class ProcessingService {
         "field.name AS fieldName",
         "machine.brand AS machineBrand",
         "machine.model AS machineModel",
+        "machine.registerNumber AS machineRegisterNumber",
         "crop.name AS cropName",
         "soil.name AS soilName",
         "farm.name AS farmName",
       ])
-      .leftJoin("processing.growingCropPeriod", "growingCropPeriod")
-      .leftJoin("processing.processingType", "processingType")
-      .leftJoin("growingCropPeriod.field", "field")
-      .leftJoin("field.soil", "soil")
-      .leftJoin("field.farm", "farm")
-      .leftJoin("processing.machine", "machine")
-      .leftJoin("growingCropPeriod.crop", "crop")
+      .innerJoin(
+        GrowingCropPeriod,
+        "growingCropPeriod",
+        "growingCropPeriod.id = processing.growing_crop_period_id",
+      )
+      .innerJoin(
+        ProcessingType,
+        "processingType",
+        "processingType.id = processing.processing_type_id",
+      )
+      .innerJoin(Field, "field", "field.id = growingCropPeriod.field_id")
+      .innerJoin(Soil, "soil", "soil.id = field.soil_id")
+      .innerJoin(Farm, "farm", "farm.id = field.farm_id")
+      .innerJoin(Machine, "machine", "machine.id = processing.machine_id")
+      .innerJoin(Crop, "crop", "crop.id = growingCropPeriod.crop_id")
       .where("processing.deleted_at IS NULL")
       .orderBy("processing.date", "ASC")
       .getRawMany();
 
     return result;
-  }
-
-  async isGrowingCropperiodAssociatedWithProcessings(
-    growingCropPeriodId: string,
-  ): Promise<boolean> {
-    const count = await this.processingRepository.count({
-      where: { growing_crop_period_id: growingCropPeriodId },
-    });
-
-    return count > 0;
-  }
-
-  async isProcessingTypeAssociatedWithProcessings(
-    processingTypeId: string,
-  ): Promise<boolean> {
-    const count = await this.processingRepository.count({
-      where: { processing_type_id: processingTypeId },
-    });
-
-    return count > 0;
-  }
-
-  async isMachineAssociatedWithProcessings(
-    machineId: string,
-  ): Promise<boolean> {
-    const count = await this.processingRepository.count({
-      where: { machine_id: machineId },
-    });
-
-    return count > 0;
   }
 }
