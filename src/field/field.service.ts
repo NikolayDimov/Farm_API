@@ -14,6 +14,7 @@ import { Crop } from "../crop/crop.entity";
 import { SoilService } from "src/soil/soil.service";
 import { FarmService } from "src/farm/farm.service";
 import { validate } from "class-validator";
+import { Soil } from "src/soil/soil.entity";
 
 @Injectable()
 export class FieldService {
@@ -167,6 +168,32 @@ export class FieldService {
     return fieldsPerFarmAndCrop;
   }
 
+  // Without farm,name and soil.name
+  // async getMostCommonSoilPerFarm(): Promise<
+  //   {
+  //     soilId: string;
+  //     soilName: string;
+  //     farmId: string;
+  //     farmName: string;
+  //     fieldCount: number;
+  //   }[]
+  // > {
+  //   const fieldsPerFarmAndSoil = await this.fieldRepository
+  //     .createQueryBuilder("field")
+  //     .select([
+  //       "field.farm_id AS farmId",
+  //       "field.soil_id AS soilId",
+  //       "CAST(COUNT(field.id) AS INTEGER) AS fieldCount",
+  //     ])
+  //     .innerJoin("soil", "soil", "field.soil_id = soil.id")
+  //     .innerJoin("farm", "farm", "field.farm_id = farm.id")
+  //     .groupBy("field.farm_id, field.soil_id")
+  //     .orderBy("fieldCount", "DESC")
+  //     .getRawMany();
+
+  //   return fieldsPerFarmAndSoil;
+  // }
+
   async getMostCommonSoilPerFarm(): Promise<
     {
       soilId: string;
@@ -179,26 +206,18 @@ export class FieldService {
     const fieldsPerFarmAndSoil = await this.fieldRepository
       .createQueryBuilder("field")
       .select([
-        "farm.id AS farm",
+        "field.farm_id AS farmId",
         "farm.name AS farmName",
-        "soil.id AS soil",
+        "field.soil_id AS soilId",
         "soil.name AS soilName",
-        "CAST(COUNT(field.id) AS INTEGER) AS soilTypeCount",
+        "CAST(COUNT(field.id) AS INTEGER) AS fieldCount",
       ])
-      .innerJoin("field.soil", "soil")
-      .innerJoin("field.farm", "farm")
-      .groupBy("farm.id, soil.id")
-      .orderBy("soilTypeCount", "DESC")
+      .innerJoin("soil", "soil", "field.soil_id = soil.id")
+      .innerJoin("farm", "farm", "field.farm_id = farm.id")
+      .groupBy("field.farm_id, field.soil_id, farm.name, soil.name")
+      .orderBy("fieldCount", "DESC")
       .getRawMany();
 
     return fieldsPerFarmAndSoil;
-  }
-
-  async isSoilAssociatedFields(soilId: string): Promise<boolean> {
-    const count = await this.fieldRepository.count({
-      where: { soil_id: soilId },
-    });
-
-    return count > 0;
   }
 }

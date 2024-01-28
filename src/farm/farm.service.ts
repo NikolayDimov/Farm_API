@@ -151,11 +151,7 @@ export class FarmService {
   > {
     const result = await this.farmRepository
       .createQueryBuilder("farm")
-      .leftJoin(
-        "machine",
-        "machines",
-        "machines.farm_id = farm.id", // Adjust this line based on your column names
-      )
+      .leftJoin("machine", "machines", "machines.farm_id = farm.id")
       .select([
         "farm.id as farmId",
         "farm.name as farmName",
