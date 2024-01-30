@@ -1,6 +1,6 @@
 // user/dtos/user-response.dto.ts
 
-import { ApiProperty } from "@nestjs/swagger"; // Import ApiProperty for Swagger documentation
+import { ApiProperty } from "@nestjs/swagger";
 import { UserRole } from "../../auth/dtos/role.enum";
 
 export class UserResponseDto {
@@ -11,7 +11,7 @@ export class UserResponseDto {
   role: UserRole;
 
   @ApiProperty()
-  id: string; // Change the type to string
+  id: string;
 
   @ApiProperty()
   created: Date;

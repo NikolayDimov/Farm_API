@@ -19,11 +19,11 @@ export class Field {
   @Column({ type: "jsonb", nullable: false })
   boundary: MultiPolygon | Polygon;
 
-  @Column({ type: "uuid", nullable: false })
-  farm_id: string;
+  @Column({ type: "uuid", name: "farm_id", nullable: false })
+  farmId: string;
 
-  @Column({ type: "uuid", nullable: false })
-  soil_id: string;
+  @Column({ type: "uuid", name: "soil_id", nullable: false })
+  soilId: string;
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

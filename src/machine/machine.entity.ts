@@ -26,8 +26,8 @@ export class Machine {
   @Column({ name: "register_number", unique: true, nullable: false })
   registerNumber: string;
 
-  @Column({ type: "uuid", nullable: false })
-  farm_id: string;
+  @Column({ type: "uuid", name: "farm_id", nullable: false })
+  farmId: string;
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;

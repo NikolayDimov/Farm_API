@@ -70,8 +70,8 @@ export class FieldService {
     const newField = this.fieldRepository.create({
       name,
       boundary,
-      farm_id: farmId,
-      soil_id: soilId,
+      farmId,
+      soilId,
     });
 
     const newCreatedField = await this.fieldRepository.save(newField);
@@ -88,7 +88,7 @@ export class FieldService {
     const updatedProperties: Partial<Field> = {
       name: updateFieldDto.name,
       boundary: updateFieldDto.boundary,
-      soil_id: updateFieldDto.soilId, // Ensure the property is mapped correctly
+      soilId: updateFieldDto.soilId, // Ensure the property is mapped correctly
     };
 
     await this.fieldRepository.update(id, updatedProperties);

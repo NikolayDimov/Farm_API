@@ -75,8 +75,8 @@ export class ProcessingService {
 
     if (
       !machineFarmId ||
-      !machineFarmId.farm_id ||
-      machineFarmId.farm_id !== growingCropPeriodFarmId?.farm_id
+      !machineFarmId.farmId ||
+      machineFarmId.farmId !== growingCropPeriodFarmId?.farmId
     ) {
       throw new BadRequestException(
         `Machine with id ${machineId} is not in this farm as field is.`,
@@ -85,9 +85,9 @@ export class ProcessingService {
 
     const newProcessing = this.processingRepository.create({
       date,
-      growing_crop_period_id: growingCropPeriodId,
-      processing_type_id: processingTypeId,
-      machine_id: machineId,
+      growingCropPeriodId: growingCropPeriodId,
+      processingTypeId: processingTypeId,
+      machineId: machineId,
     });
 
     const createdProcessing =
@@ -130,7 +130,7 @@ export class ProcessingService {
         .createQueryBuilder("gp")
         .innerJoin("field", "f", "f.id = gp.field_id")
         .where("gp.id = :growingCropPeriodId", {
-          growingCropPeriodId: existingProcessing.growing_crop_period_id,
+          growingCropPeriodId: existingProcessing.growingCropPeriodId,
         })
         .select("f.farm_id", "farm_id")
         .getRawOne();
@@ -146,7 +146,7 @@ export class ProcessingService {
       }
 
       // Update the machine ID
-      existingProcessing.machine_id = updateProcessingDto.machineId;
+      existingProcessing.machineId = updateProcessingDto.machineId;
     }
 
     // Set the updated properties in the processing entity

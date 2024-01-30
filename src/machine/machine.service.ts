@@ -64,7 +64,7 @@ export class MachineService {
       brand,
       model,
       registerNumber,
-      farm_id: farmId,
+      farmId: farmId,
     });
 
     const newCreatedMachine = await this.machineRepository.save(newMachine);
@@ -139,7 +139,7 @@ export class MachineService {
       throw new BadRequestException(`No farm found!`);
     }
 
-    existingMachine.farm_id = newFarmId;
+    existingMachine.farmId = newFarmId;
 
     return await this.machineRepository.save(existingMachine);
   }

@@ -23,7 +23,7 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(user: CreateUserDto): Promise<UserResponseDto> {
+  async register(user: CreateUserDto) {
     const users = await this.usersService.find(user.email);
 
     if (users.length) {
@@ -48,7 +48,15 @@ export class AuthService {
         user.role,
       );
 
-      return userToCreate;
+      const payload = {
+        sub: userToCreate.id,
+        email: userToCreate.email,
+        role: userToCreate.role,
+      };
+
+      return {
+        access_token: await this.jwtService.signAsync(payload),
+      };
     } catch (error) {
       throw new BadRequestException("Email is already use!");
     }

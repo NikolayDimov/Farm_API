@@ -54,8 +54,8 @@ export class GrowingCropPeriodService {
     }
 
     const newGrowingCropPeriod = this.growingCropPeriodRepository.create({
-      field_id: fieldId,
-      crop_id: cropId,
+      fieldId: fieldId,
+      cropId: cropId,
     });
 
     return await this.growingCropPeriodRepository.save(newGrowingCropPeriod);
@@ -73,10 +73,10 @@ export class GrowingCropPeriodService {
 
     const updatedGrowingCropPeriod: Partial<GrowingCropPeriod> = {};
     if (updateGrowingCropPeriodDto.fieldId) {
-      updatedGrowingCropPeriod.field_id = updateGrowingCropPeriodDto.fieldId;
+      updatedGrowingCropPeriod.fieldId = updateGrowingCropPeriodDto.fieldId;
     }
     if (updateGrowingCropPeriodDto.cropId) {
-      updatedGrowingCropPeriod.crop_id = updateGrowingCropPeriodDto.cropId;
+      updatedGrowingCropPeriod.cropId = updateGrowingCropPeriodDto.cropId;
     }
 
     await this.growingCropPeriodRepository.update(id, updatedGrowingCropPeriod);

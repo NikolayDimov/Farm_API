@@ -18,14 +18,14 @@ export class Processing {
   @IsDateString()
   date: Date;
 
-  @Column({ type: "uuid", nullable: false })
-  growing_crop_period_id: string;
+  @Column({ type: "uuid", name: "growing_crop_period_id", nullable: false })
+  growingCropPeriodId: string;
 
-  @Column({ type: "uuid", nullable: false })
-  processing_type_id: string;
+  @Column({ type: "uuid", name: "processing_type_id", nullable: false })
+  processingTypeId: string;
 
-  @Column({ type: "uuid", nullable: false })
-  machine_id: string;
+  @Column({ type: "uuid", name: "machine_id", nullable: false })
+  machineId: string;
 
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;
