@@ -61,7 +61,7 @@ export class ProcessingService {
     const growingCropPeriodFarmId = await this.entityManager
       .getRepository(GrowingCropPeriod)
       .createQueryBuilder("gp")
-      .innerJoin("field", "f", "f.id = gp.field_id")
+      .innerJoin("field", "f", "f.id = gp.fieldId")
       .where("gp.id = :growingCropPeriodId", { growingCropPeriodId })
       .select("f.farm_id", "farm_id")
       .getRawOne();
@@ -73,10 +73,16 @@ export class ProcessingService {
       .select("machine.farm_id", "farm_id")
       .getRawOne();
 
+    // console.log("GrowingCropPeriod Farm ID:", growingCropPeriodFarmId);
+    // console.log("Machine Farm ID:", machineFarmId);
+
+    // console.log("Machine Farm ID:", machineFarmId?.farm_id);
+    // console.log("GrowingCropPeriod Farm ID:", growingCropPeriodFarmId?.farm_id);
+
     if (
       !machineFarmId ||
-      !machineFarmId.farmId ||
-      machineFarmId.farmId !== growingCropPeriodFarmId?.farmId
+      !machineFarmId.farm_id ||
+      machineFarmId.farm_id !== growingCropPeriodFarmId?.farm_id
     ) {
       throw new BadRequestException(
         `Machine with id ${machineId} is not in this farm as field is.`,
