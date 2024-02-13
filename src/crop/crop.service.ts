@@ -49,12 +49,12 @@ export class CropService {
     });
 
     if (existingCrop) {
-      // If the soil exists and is soft-deleted, restore it
+      // If the crop exists and is soft-deleted, restore it
       if (existingCrop.deleted) {
         existingCrop.deleted = null;
         return await this.cropRepository.save(existingCrop);
       } else {
-        // If the soil is not soft-deleted, throw a conflict exception
+        // If the crop is not soft-deleted, throw a conflict exception
         throw new ConflictException(`Crop ${name} already exists`);
       }
     }

@@ -21,7 +21,11 @@ export class SoilService {
   ) {}
 
   async findAll() {
-    const soils = await this.soilRepository.find({});
+    const soils = await this.soilRepository.find({
+      order: {
+        created: "DESC",
+      },
+    });
     if (!soils) {
       throw new NotFoundException(`No soils found`);
     }

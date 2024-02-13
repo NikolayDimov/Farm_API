@@ -52,7 +52,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     }
     // Handle specific database-related errors
     if (error instanceof QueryFailedError) {
-      status = HttpStatus.BAD_REQUEST; // or another appropriate status
+      status = HttpStatus.BAD_REQUEST;
       message = "Database query failed";
       additionalInfo = error.driverError.detail;
     }

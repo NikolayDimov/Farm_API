@@ -129,7 +129,7 @@ export class MachineService {
 
     if (isMachineAssociatedWithProcessing > 0) {
       throw new BadRequestException(
-        `This machine with ID ${id} has associated processing. Cannot delete the machine.`,
+        `This machine with ID ${id} has associated processing. Cannot transfer the machine.`,
       );
     }
 

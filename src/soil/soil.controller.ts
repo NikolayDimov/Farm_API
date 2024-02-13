@@ -56,6 +56,7 @@ export class SoilController {
   async softDetele(
     @Param("id", ParseUUIDPipe) id: string,
   ): Promise<{ id: string; name: string; message: string }> {
+    console.log(`Soft deleting soil with ID: ${id}`);
     return this.soilService.softDetele(id);
   }
 

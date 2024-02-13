@@ -15,12 +15,6 @@ export class Crop {
   @Column({ nullable: false })
   name: string;
 
-  // @OneToMany(
-  //   () => GrowingCropPeriod,
-  //   (growingCropPeriod) => growingCropPeriod.crop,
-  // )
-  // growingCropPeriods: GrowingCropPeriod[];
-
   @CreateDateColumn({ type: "timestamp", name: "created_at" })
   created: Date;
 
