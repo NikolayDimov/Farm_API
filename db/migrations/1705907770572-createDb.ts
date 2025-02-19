@@ -1,3 +1,4 @@
+
 import { UserRole } from "../../src/auth/dtos/role.enum";
 import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } from "typeorm";
 

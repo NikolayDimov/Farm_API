@@ -50,7 +50,8 @@ dotenv.config();
           type: "postgres",
           host: "localhost",
           port: 5432,
-          username: config.get<string>("USERNAME"),
+          // username: config.get<string>("USERNAME"),
+          username: config.get<string>("DB_USERNAME"),
           password: config.get<string>("PASSWORD"),
           database: config.get<string>("DB_NAME"),
           entities: [
@@ -97,4 +98,4 @@ dotenv.config();
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
